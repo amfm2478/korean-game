@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국어 대화 연습 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky: #e0f4ff;
+    --blue: #3b9edd;
+    --deep: #1a5c8a;
+    --yellow: #ffd94a;
+    --green: #4ecb71;
+    --orange: #ff8c42;
+    --pink: #ff6b9d;
+    --purple: #9b72cf;
+    --red: #ff4d4d;
+    --white: #ffffff;
+    --card: #ffffffcc;
+    --shadow: 0 4px 20px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nanum Gothic', sans-serif;
+    background: linear-gradient(160deg, #cce9ff 0%, #e8f8e8 50%, #fff3cc 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  h1 {
+    font-family: 'Jua', cursive;
+    font-size: 2.2rem;
+    color: var(--deep);
+    text-align: center;
+    margin-bottom: 6px;
+    text-shadow: 2px 2px 0 #fff;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: #558;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  /* Situation selector */
+  #situation-screen {
+    width: 100%;
+    max-width: 700px;
+  }
+
+  .situation-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 10px;
+  }
+
+  .sit-card {
+    background: var(--white);
+    border-radius: 20px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform 0.15s, box-shadow 0.15s;
+    border: 3px solid transparent;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  }
+
+  .sit-card .icon { font-size: 3rem; display: block; margin-bottom: 10px; }
+  .sit-card .label { font-family: 'Jua', cursive; font-size: 1.25rem; color: #333; }
+  .sit-card .desc { font-size: 0.82rem; color: #777; margin-top: 4px; }
+
+  .sit-card[data-color="blue"] { border-color: var(--blue); }
+  .sit-card[data-color="green"] { border-color: var(--green); }
+  .sit-card[data-color="orange"] { border-color: var(--orange); }
+  .sit-card[data-color="purple"] { border-color: var(--purple); }
+  .sit-card[data-color="pink"] { border-color: var(--pink); }
+  .sit-card[data-color="yellow"] { border-color: #e5bb00; }
+
+  /* Game screen */
+  #game-screen {
+    display: none;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  .game-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .back-btn {
+    background: var(--white);
+    border: none;
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s;
+  }
+  .back-btn:hover { background: #eee; }
+
+  .game-title {
+    font-family: 'Jua', cursive;
+    font-size: 1.5rem;
+    color: var(--deep);
+  }
+
+  .progress-bar-wrap {
+    background: #ddd;
+    border-radius: 999px;
+    height: 10px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue), var(--green));
+    border-radius: 999px;
+    transition: width 0.5s;
+  }
+
+  /* Scene illustration */
+  .scene-box {
+    background: var(--white);
+    border-radius: 24px;
+    padding: 22px 22px 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+    position: relative;
+  }
+
+  .scene-illustration {
+    font-size: 5rem;
+    text-align: center;
+    display: block;
+    margin-bottom: 8px;
+    animation: bounce 1.2s infinite alternate;
+  }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+
+  /* NPC speech bubble */
+  .npc-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .npc-avatar {
+    font-size: 2.8rem;
+    flex-shrink: 0;
+    animation: wiggle 2s infinite;
+  }
+  @keyframes wiggle {
+    0%,100% { transform: rotate(0deg); }
+    25% { transform: rotate(-5deg); }
+    75% { transform: rotate(5deg); }
+  }
+  .speech-bubble {
+    background: var(--deep);
+    color: #fff;
+    border-radius: 18px 18px 18px 4px;
+    padding: 14px 18px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.5;
+    box-shadow: 0 3px 10px rgba(27,92,138,0.3);
+    max-width: 480px;
+  }
+  .speech-bubble .hint {
+    font-size: 0.85rem;
+    font-weight: 400;
+    opacity: 0.8;
+    margin-top: 4px;
+  }
+
+  /* Step label */
+  .step-label {
+    text-align: center;
+    font-size: 0.88rem;
+    color: #888;
+    margin-bottom: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Choice buttons */
+  .choice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .choice-btn {
+    background: var(--white);
+    border: 3px solid #ddd;
+    border-radius: 18px;
+    padding: 14px 10px;
+    cursor: pointer;
+    font-family: 'Nanum Gothic', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #333;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    position: relative;
+    overflow: hidden;
+  }
+  .choice-btn .choice-icon { font-size: 2.2rem; }
+  .choice-btn:hover {
+    transform: translateY(-3px);
+    border-color: var(--blue);
+    box-shadow: 0 6px 18px rgba(59,158,221,0.2);
+  }
+  .choice-btn.selected {
+    border-color: var(--blue);
+    background: #e8f4ff;
+  }
+
+  /* Model answer */
+  .model-box {
+    background: linear-gradient(135deg, #fff8e1, #fffde7);
+    border: 2px dashed #e5bb00;
+    border-radius: 18px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .model-label {
+    font-size: 0.85rem;
+    color: #a08000;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .model-text {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #5a4200;
+    line-height: 1.4;
+  }
+
+  /* Voice repeat area */
+  .repeat-area {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .repeat-label {
+    font-size: 1rem;
+    color: #555;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* Mic button */
+  .mic-btn {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--blue), #1a7fc4);
+    color: #fff;
+    font-size: 2.6rem;
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(59,158,221,0.45);
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .mic-btn:hover { transform: scale(1.08); }
+  .mic-btn.listening {
+    background: linear-gradient(135deg, #ff4d4d, #cc1100);
+    box-shadow: 0 6px 28px rgba(255,77,77,0.55);
+    animation: pulse-mic 0.9s infinite;
+  }
+  @keyframes pulse-mic {
+    0%,100% { transform: scale(1); box-shadow: 0 6px 28px rgba(255,77,77,0.55); }
+    50% { transform: scale(1.12); box-shadow: 0 8px 36px rgba(255,77,77,0.8); }
+  }
+
+  /* Sound wave rings */
+  .mic-btn.listening::before,
+  .mic-btn.listening::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 3px solid rgba(255,77,77,0.5);
+    animation: ring-expand 1.2s infinite;
+  }
+  .mic-btn.listening::before { width: 110px; height: 110px; animation-delay: 0s; }
+  .mic-btn.listening::after  { width: 140px; height: 140px; animation-delay: 0.4s; }
+  @keyframes ring-expand {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+
+  /* Recognized text display */
+  .voice-result-box {
+    width: 100%;
+    min-height: 56px;
+    background: #f5f5ff;
+    border: 3px solid #ccc;
+    border-radius: 16px;
+    padding: 14px 18px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #333;
+    text-align: center;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .voice-result-box.listening { border-color: var(--red); background: #fff8f8; color: #999; }
+  .voice-result-box.correct   { border-color: var(--green); background: #f0fff4; color: #1a7a40; }
+  .voice-result-box.wrong     { border-color: var(--red); background: #fff0f0; color: #cc2200; }
+
+  .mic-status {
+    font-size: 0.9rem;
+    color: #888;
+    text-align: center;
+    min-height: 22px;
+  }
+  .mic-status.active { color: var(--red); font-weight: 700; }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+  .btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Jua', cursive;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-secondary { background: #eee; color: #555; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Feedback */
+  .feedback {
+    text-align: center;
+    font-family: 'Jua', cursive;
+    font-size: 1.3rem;
+    padding: 10px;
+    border-radius: 12px;
+    display: none;
+    animation: pop 0.3s ease;
+  }
+  @keyframes pop { from { transform: scale(0.8); opacity:0; } to { transform: scale(1); opacity:1; } }
+  .feedback.ok { background: #e8fff0; color: #1a8a40; }
+  .feedback.err { background: #fff0f0; color: #cc2200; }
+
+  /* Completion screen */
+  #complete-screen {
+    display: none;
+    text-align: center;
+    width: 100%;
+    max-width: 700px;
+  }
+  .complete-card {
+    background: var(--white);
+    border-radius: 28px;
+    padding: 40px 30px;
+    box-shadow: var(--shadow);
+  }
+  .star-row { font-size: 3rem; margin-bottom: 16px; }
+  .complete-title {
+    font-family: 'Jua', cursive;
+    font-size: 2rem;
+    color: var(--deep);
+    margin-bottom: 8px;
+  }
+  .complete-msg { font-size: 1.1rem; color: #555; margin-bottom: 24px; }
+  .score-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--yellow), #ffb300);
+    color: #5a3800;
+    font-family: 'Jua', cursive;
+    font-size: 1.5rem;
+    padding: 10px 30px;
+    border-radius: 50px;
+    margin-bottom: 24px;
+  }
+
+  /* TTS button */
+  .tts-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    margin-left: 6px;
+    vertical-align: middle;
+    transition: transform 0.1s;
+  }
+  .tts-btn:hover { transform: scale(1.2); }
+
+  /* Confetti */
+  .confetti-wrap {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 9999;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 2px;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.7rem; }
+    .situation-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sit-card { padding: 16px 10px; }
+    .sit-card .icon { font-size: 2.2rem; }
+    .sit-card .label { font-size: 1rem; }
+    .speech-bubble { font-size: 1rem; }
+    .choice-btn { font-size: 0.92rem; }
+    .btn { font-size: 0.95rem; padding: 10px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🗣️ 한국어 대화 게임</h1>
+<p class="subtitle">상황에 맞게 대화 연습을 해봐요! 💪</p>
+
+<!-- SITUATION SELECTION -->
+<div id="situation-screen">
+  <div class="situation-grid">
+    <div class="sit-card" data-color="blue" onclick="startGame('restaurant')">
+      <span class="icon">🍽️</span>
+      <div class="label">식당 주문</div>
+      <div class="desc">음식을 주문해봐요</div>
+    </div>
+    <div class="sit-card" data-color="green" onclick="startGame('store')">
+      <span class="icon">🛒</span>
+      <div class="label">편의점 쇼핑</div>
+      <div class="desc">물건을 사봐요</div>
+    </div>
+    <div class="sit-card" data-color="orange" onclick="startGame('introduce')">
+      <span class="icon">👋</span>
+      <div class="label">자기소개</div>
+      <div class="desc">나를 소개해봐요</div>
+    </div>
+    <div class="sit-card" data-color="purple" onclick="startGame('bus')">
+      <span class="icon">🚌</span>
+      <div class="label">버스 / 지하철</div>
+      <div class="desc">대중교통을 이용해봐요</div>
+    </div>
+    <div class="sit-card" data-color="pink" onclick="startGame('doctor')">
+      <span class="icon">🏥</span>
+      <div class="label">병원 접수</div>
+      <div class="desc">병원에 가봐요</div>
+    </div>
+    <div class="sit-card" data-color="yellow" onclick="startGame('phone')">
+      <span class="icon">📞</span>
+      <div class="label">전화 통화</div>
+      <div class="desc">전화를 해봐요</div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <div class="game-header">
+    <button class="back-btn" onclick="goBack()">←</button>
+    <span class="game-title" id="game-title"></span>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="scene-box">
+    <span class="scene-illustration" id="scene-icon"></span>
+    <div class="npc-row">
+      <span class="npc-avatar" id="npc-avatar"></span>
+      <div class="speech-bubble">
+        <span id="npc-text"></span>
+        <button class="tts-btn" onclick="speakText(document.getElementById('npc-text').innerText)" title="듣기">🔊</button>
+        <div class="hint" id="npc-hint"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1: Choose -->
+  <div id="step-choose">
+    <div class="step-label" id="step-choose-label">👆 하나를 골라봐요!</div>
+    <div class="choice-grid" id="choice-grid"></div>
+  </div>
+
+  <!-- STEP 2: Model answer -->
+  <div class="model-box" id="model-box">
+    <div class="model-label">📣 이렇게 말해봐요:</div>
+    <div class="model-text" id="model-text"></div>
+    <button class="tts-btn" onclick="speakText(document.getElementById('model-text').innerText)" title="듣기">🔊 들어보기</button>
+  </div>
+
+  <!-- STEP 3: Voice Repeat -->
+  <div class="repeat-area" id="repeat-area">
+    <div class="repeat-label">🎤 마이크를 누르고 큰 소리로 말해봐요!</div>
+    <div class="voice-result-box" id="voice-result-box">여기에 말한 내용이 나타나요</div>
+    <button class="mic-btn" id="mic-btn" onclick="toggleMic()">🎤</button>
+    <div class="mic-status" id="mic-status">마이크 버튼을 눌러봐요 👆</div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="skipStep()">건너뛰기</button>
+    </div>
+  </div>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div class="btn-row" id="next-row" style="display:none; margin-top:10px;">
+    <button class="btn btn-success" onclick="nextStep()">다음 ▶</button>
+  </div>
+</div>
+
+<!-- COMPLETE SCREEN -->
+<div id="complete-screen">
+  <div class="complete-card">
+    <div class="star-row">⭐⭐⭐</div>
+    <div class="complete-title">완료! 정말 잘했어요! 🎉</div>
+    <div class="complete-msg" id="complete-msg"></div>
+    <div class="score-badge" id="score-badge"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goBack()">다른 상황 도전하기 🚀</button>
+    </div>
+  </div>
+</div>
+
+<div class="confetti-wrap" id="confetti"></div>
+
+<script>
+// ─── SITUATION DATA ────────────────────────────────────────────────────────
+const SITUATIONS = {
+  restaurant: {
+    title: "🍽️ 식당 주문",
+    icon: "🍜",
+    npcAvatar: "👨‍🍳",
+    steps: [
+      {
+        npcText: "어서 오세요! 뭘 주문하시겠어요?",
+        hint: "먹고 싶은 음식을 골라봐요",
+        choiceLabel: "👆 먹고 싶은 음식을 골라봐요!",
+        choices: [
+          { icon: "🍜", label: "김치찌개" },
+          { icon: "🍱", label: "비빔밥" },
+          { icon: "🍗", label: "치킨" },
+          { icon: "🍕", label: "피자" }
+        ],
+        modelFn: (c) => `${c} 1개 주세요.`
+      },
+      {
+        npcText: "음료는 무엇으로 드릴까요?",
+        hint: "마시고 싶은 음료를 골라봐요",
+        choiceLabel: "👆 마시고 싶은 음료를 골라봐요!",
+        choices: [
+          { icon: "🧃", label: "주스" },
+          { icon: "🥤", label: "콜라" },
+          { icon: "🍵", label: "녹차" },
+          { icon: "💧", label: "물" }
+        ],
+        modelFn: (c) => `${c} 주세요.`
+      },
+      {
+        npcText: "얼마나 기다리실 수 있어요?",
+        hint: "기다릴 수 있는 시간을 골라봐요",
+        choiceLabel: "👆 기다릴 수 있는 시간을 골라봐요!",
+        choices: [
+          { icon: "⏱️", label: "5분" },
+          { icon: "🕐", label: "10분" },
+          { icon: "🕑", label: "20분" },
+          { icon: "😅", label: "괜찮아요" }
+        ],
+        modelFn: (c) => c === "괜찮아요" ? "괜찮아요, 기다릴게요." : `${c} 정도 기다릴 수 있어요.`
+      }
+    ]
+  },
+
+  store: {
+    title: "🛒 편의점 쇼핑",
+    icon: "🏪",
+    npcAvatar: "🧑‍💼",
+    steps: [
+      {
+        npcText: "어서 오세요! 무엇을 찾으세요?",
+        hint: "사고 싶은 것을 골라봐요",
+        choiceLabel: "👆 사고 싶은 것을 골라봐요!",
+        choices: [
+          { icon: "🍫", label: "초콜릿" },
+          { icon: "🥤", label: "음료수" },
+          { icon: "🍜", label: "컵라면" },
+          { icon: "🍞", label: "빵" }
+        ],
+        modelFn: (c) => `${c} 있어요?`
+      },
+      {
+        npcText: "몇 개 드릴까요?",
+        hint: "몇 개 살지 골라봐요",
+        choiceLabel: "👆 몇 개 살지 골라봐요!",
+        choices: [
+          { icon: "1️⃣", label: "1개" },
+          { icon: "2️⃣", label: "2개" },
+          { icon: "3️⃣", label: "3개" },
+          { icon: "🔢", label: "5개" }
+        ],
+        modelFn: (c) => `${c} 주세요.`
+      },
+      {
+        npcText: "봉투 드릴까요?",
+        hint: "봉투가 필요한지 골라봐요",
+        choiceLabel: "👆 어떻게 할지 골라봐요!",
+        choices: [
+          { icon: "🛍️", label: "네, 주세요" },
+          { icon: "🚫", label: "아니요, 괜찮아요" },
+          { icon: "💳", label: "카드로 결제해요" },
+          { icon: "💵", label: "현금으로 낼게요" }
+        ],
+        modelFn: (c) => {
+          if (c === "네, 주세요") return "네, 봉투 주세요.";
+          if (c === "아니요, 괜찮아요") return "아니요, 괜찮아요.";
+          if (c === "카드로 결제해요") return "카드로 결제할게요.";
+          return "현금으로 낼게요.";
+        }
+      }
+    ]
+  },
+
+  introduce: {
+    title: "👋 자기소개",
+    icon: "🙋",
+    npcAvatar: "👩‍🏫",
+    steps: [
+      {
+        npcText: "안녕하세요! 이름이 뭐예요?",
+        hint: "인사를 골라봐요",
+        choiceLabel: "👆 인사 방법을 골라봐요!",
+        choices: [
+          { icon: "😊", label: "안녕하세요" },
+          { icon: "👋", label: "반가워요" },
+          { icon: "🌟", label: "처음 만나요" },
+          { icon: "😄", label: "저도 반가워요" }
+        ],
+        modelFn: (c) => `${c}! 제 이름은 민지예요.`
+      },
+      {
+        npcText: "몇 학년이에요?",
+        hint: "학년을 골라봐요",
+        choiceLabel: "👆 학년을 골라봐요!",
+        choices: [
+          { icon: "🏫", label: "고등학교 1학년" },
+          { icon: "📚", label: "고등학교 2학년" },
+          { icon: "🎓", label: "고등학교 3학년" },
+          { icon: "📖", label: "중학교 3학년" }
+        ],
+        modelFn: (c) => `저는 ${c}이에요.`
+      },
+      {
+        npcText: "취미가 뭐예요?",
+        hint: "좋아하는 것을 골라봐요",
+        choiceLabel: "👆 좋아하는 것을 골라봐요!",
+        choices: [
+          { icon: "🎵", label: "음악 듣기" },
+          { icon: "📺", label: "영상 보기" },
+          { icon: "🎨", label: "그림 그리기" },
+          { icon: "🎮", label: "게임 하기" }
+        ],
+        modelFn: (c) => `제 취미는 ${c}예요.`
+      }
+    ]
+  },
+
+  bus: {
+    title: "🚌 버스 / 지하철",
+    icon: "🚉",
+    npcAvatar: "👷",
+    steps: [
+      {
+        npcText: "어디 가세요?",
+        hint: "가고 싶은 곳을 골라봐요",
+        choiceLabel: "👆 가고 싶은 곳을 골라봐요!",
+        choices: [
+          { icon: "🏫", label: "학교" },
+          { icon: "🏥", label: "병원" },
+          { icon: "🛒", label: "마트" },
+          { icon: "🏠", label: "집" }
+        ],
+        modelFn: (c) => `${c}에 가요.`
+      },
+      {
+        npcText: "몇 번 버스를 타실 건가요?",
+        hint: "버스 번호를 골라봐요",
+        choiceLabel: "👆 버스 번호를 골라봐요!",
+        choices: [
+          { icon: "🔢", label: "5번" },
+          { icon: "🔢", label: "17번" },
+          { icon: "🔢", label: "32번" },
+          { icon: "🚇", label: "지하철" }
+        ],
+        modelFn: (c) => c === "지하철" ? "지하철을 탈 거예요." : `${c} 버스를 탈 거예요.`
+      },
+      {
+        npcText: "교통카드 있어요?",
+        hint: "교통카드에 대해 말해봐요",
+        choiceLabel: "👆 맞는 것을 골라봐요!",
+        choices: [
+          { icon: "💳", label: "네, 있어요" },
+          { icon: "🚫", label: "없어요" },
+          { icon: "💵", label: "현금 낼게요" },
+          { icon: "❓", label: "얼마예요?" }
+        ],
+        modelFn: (c) => {
+          if (c === "네, 있어요") return "네, 교통카드 있어요.";
+          if (c === "없어요") return "교통카드가 없어요.";
+          if (c === "현금 낼게요") return "현금으로 낼게요.";
+          return "요금이 얼마예요?";
+        }
+      }
+    ]
+  },
+
+  doctor: {
+    title: "🏥 병원 접수",
+    icon: "🩺",
+    npcAvatar: "👩‍⚕️",
+    steps: [
+      {
+        npcText: "어떻게 오셨어요?",
+        hint: "아픈 곳을 골라봐요",
+        choiceLabel: "👆 아픈 곳을 골라봐요!",
+        choices: [
+          { icon: "🤒", label: "열이 나요" },
+          { icon: "🤧", label: "콧물이 나요" },
+          { icon: "😣", label: "배가 아파요" },
+          { icon: "🤕", label: "머리가 아파요" }
+        ],
+        modelFn: (c) => `${c}.`
+      },
+      {
+        npcText: "언제부터 아팠어요?",
+        hint: "언제부터인지 골라봐요",
+        choiceLabel: "👆 언제부터인지 골라봐요!",
+        choices: [
+          { icon: "📅", label: "오늘부터요" },
+          { icon: "📅", label: "어제부터요" },
+          { icon: "📅", label: "2일 전부터요" },
+          { icon: "📅", label: "일주일 전부터요" }
+        ],
+        modelFn: (c) => `${c}.`
+      },
+      {
+        npcText: "어디에 사세요?",
+        hint: "주소를 어떻게 말하는지 골라봐요",
+        choiceLabel: "👆 어떻게 말할지 골라봐요!",
+        choices: [
+          { icon: "🏠", label: "수원에 살아요" },
+          { icon: "📋", label: "주소가 뭐예요?" },
+          { icon: "📝", label: "적어드릴게요" },
+          { icon: "🆔", label: "신분증 있어요" }
+        ],
+        modelFn: (c) => {
+          if (c === "수원에 살아요") return "저는 수원에 살아요.";
+          if (c === "주소가 뭐예요?") return "주소가 어디예요?";
+          if (c === "적어드릴게요") return "여기 적어드릴게요.";
+          return "신분증 있어요.";
+        }
+      }
+    ]
+  },
+
+  phone: {
+    title: "📞 전화 통화",
+    icon: "📱",
+    npcAvatar: "🤳",
+    steps: [
+      {
+        npcText: "여보세요? 누구세요?",
+        hint: "전화로 나를 소개해봐요",
+        choiceLabel: "👆 전화로 나를 어떻게 소개할지 골라봐요!",
+        choices: [
+          { icon: "👋", label: "안녕하세요, 민지예요" },
+          { icon: "🏫", label: "학교 친구예요" },
+          { icon: "👨‍👩‍👧", label: "딸이에요" },
+          { icon: "📞", label: "전화 잘못 거셨어요" }
+        ],
+        modelFn: (c) => `${c}.`
+      },
+      {
+        npcText: "무슨 일이에요?",
+        hint: "전화한 이유를 말해봐요",
+        choiceLabel: "👆 전화한 이유를 골라봐요!",
+                choices: [
+          { icon: "📚", label: "숙제 물어보려고요" },
+          { icon: "🤝", label: "약속 정하려고요" },
+          { icon: "❓", label: "확인하려고요" },
+          { icon: "💌", label: "안부 전하려고요" }
+        ],
+        modelFn: (c) => `${c}.`
+      },
+      {
+        npcText: "나중에 다시 전화해도 될까요?",
+        hint: "대답을 골라봐요",
+        choiceLabel: "👆 어떻게 대답할지 골라봐요!",
+        choices: [
+          { icon: "✅", label: "네, 괜찮아요" },
+          { icon: "⏰", label: "저녁에 전화하세요" },
+          { icon: "📱", label: "문자 보내주세요" },
+          { icon: "❌", label: "지금 얘기해요" }
+        ],
+        modelFn: (c) => {
+          if (c === "네, 괜찮아요") return "네, 괜찮아요. 전화 주세요.";
+          if (c === "저녁에 전화하세요") return "저녁에 다시 전화해 주세요.";
+          if (c === "문자 보내주세요") return "문자 메시지로 보내주세요.";
+          return "지금 얘기해요.";
+        }
+      }
+    ]
+  }
+};
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let currentSituation = null;
+let currentStep = 0;
+let totalSteps = 0;
+let selectedChoice = null;
+let modelAnswer = '';
+let correctCount = 0;
+let gamePhase = 'choose'; // 'choose' | 'model' | 'repeat'
+
+// ─── MAIN FUNCTIONS ────────────────────────────────────────────────────────
+function startGame(situationKey) {
+  currentSituation = SITUATIONS[situationKey];
+  currentStep = 0;
+  totalSteps = currentSituation.steps.length;
+  correctCount = 0;
+
+  document.getElementById('situation-screen').style.display = 'none';
+  document.getElementById('complete-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+  document.getElementById('game-title').textContent = currentSituation.title;
+  document.getElementById('scene-icon').textContent = currentSituation.icon;
+  document.getElementById('npc-avatar').textContent = currentSituation.npcAvatar;
+
+  loadStep();
+}
+
+function loadStep() {
+  const step = currentSituation.steps[currentStep];
+  gamePhase = 'choose';
+  selectedChoice = null;
+
+  // Progress
+  const pct = (currentStep / totalSteps) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  // NPC speech
+  document.getElementById('npc-text').textContent = step.npcText;
+  document.getElementById('npc-hint').textContent = step.hint || '';
+
+  // Choices
+  document.getElementById('step-choose-label').textContent = step.choiceLabel;
+  const grid = document.getElementById('choice-grid');
+  grid.innerHTML = '';
+  step.choices.forEach((ch, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<span class="choice-icon">${ch.icon}</span><span>${ch.label}</span>`;
+    btn.onclick = () => selectChoice(ch.label, btn);
+    grid.appendChild(btn);
+  });
+
+  // Reset UI
+  document.getElementById('step-choose').style.display = 'block';
+  document.getElementById('model-box').style.display = 'none';
+  document.getElementById('repeat-area').style.display = 'none';
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('next-row').style.display = 'none';
+
+  // Reset voice UI
+  stopMic();
+  const vrb = document.getElementById('voice-result-box');
+  vrb.textContent = '여기에 말한 내용이 나타나요';
+  vrb.className = 'voice-result-box';
+  document.getElementById('mic-status').textContent = '마이크 버튼을 눌러봐요 👆';
+  document.getElementById('mic-status').className = 'mic-status';
+  document.getElementById('mic-btn').className = 'mic-btn';
+}
+
+function selectChoice(label, btn) {
+  if (gamePhase !== 'choose') return;
+
+  // Highlight selected
+  document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedChoice = label;
+
+  // Compute model answer
+  const step = currentSituation.steps[currentStep];
+  modelAnswer = step.modelFn(label);
+
+  // Short delay then show model
+  setTimeout(() => {
+    gamePhase = 'model';
+    document.getElementById('model-text').textContent = modelAnswer;
+    document.getElementById('model-box').style.display = 'block';
+    speakText(modelAnswer);
+
+    setTimeout(() => {
+      gamePhase = 'repeat';
+      document.getElementById('repeat-area').style.display = 'flex';
+    }, 1400);
+  }, 400);
+}
+
+// ─── VOICE RECOGNITION ─────────────────────────────────────────────────────
+let recognition = null;
+let isListening = false;
+
+function initRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('이 브라우저는 음성 인식을 지원하지 않아요.\nChrome 브라우저를 사용해주세요! 🙏');
+    return null;
+  }
+  const rec = new SpeechRecognition();
+  rec.lang = 'ko-KR';
+  rec.interimResults = true;
+  rec.maxAlternatives = 5;
+  rec.continuous = false;
+
+  rec.onstart = () => {
+    isListening = true;
+    document.getElementById('mic-btn').className = 'mic-btn listening';
+    const vrb = document.getElementById('voice-result-box');
+    vrb.textContent = '🎤 듣고 있어요...';
+    vrb.className = 'voice-result-box listening';
+    document.getElementById('mic-status').textContent = '말해봐요! 🎙️';
+    document.getElementById('mic-status').className = 'mic-status active';
+  };
+
+  rec.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    const display = final || interim;
+    document.getElementById('voice-result-box').textContent = display || '🎤 듣고 있어요...';
+    if (final) {
+      // Collect all alternatives
+      const alts = [];
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          for (let j = 0; j < e.results[i].length; j++) {
+            alts.push(e.results[i][j].transcript);
+          }
+        }
+      }
+      evaluateVoice(alts.length ? alts : [final]);
+    }
+  };
+
+  rec.onerror = (e) => {
+    isListening = false;
+    document.getElementById('mic-btn').className = 'mic-btn';
+    if (e.error === 'no-speech') {
+      document.getElementById('mic-status').textContent = '소리가 안 들려요. 다시 눌러봐요!';
+    } else if (e.error === 'not-allowed') {
+      document.getElementById('mic-status').textContent = '마이크 권한이 필요해요! 브라우저 설정을 확인해주세요.';
+    } else {
+      document.getElementById('mic-status').textContent = '다시 시도해봐요!';
+    }
+    document.getElementById('mic-status').className = 'mic-status';
+    document.getElementById('voice-result-box').className = 'voice-result-box';
+  };
+
+  rec.onend = () => {
+    isListening = false;
+    document.getElementById('mic-btn').className = 'mic-btn';
+    if (document.getElementById('mic-status').className.includes('active')) {
+      document.getElementById('mic-status').textContent = '다시 눌러봐요 👆';
+      document.getElementById('mic-status').className = 'mic-status';
+    }
+  };
+
+  return rec;
+}
+
+function toggleMic() {
+  if (gamePhase !== 'repeat') return;
+  if (isListening) {
+    stopMic();
+  } else {
+    stopSpeech(); // stop TTS before listening
+    recognition = initRecognition();
+    if (recognition) recognition.start();
+  }
+}
+
+function stopMic() {
+  if (recognition) {
+    try { recognition.stop(); } catch(e) {}
+  }
+  isListening = false;
+  document.getElementById('mic-btn').className = 'mic-btn';
+}
+
+function evaluateVoice(alts) {
+  const normalize = s => s
+    .replace(/[.,!?~\s·]/g, '')
+    .replace(/[0-9]/g, d => ['영','일','이','삼','사','오','육','칠','팔','구'][+d] || d)
+    .toLowerCase();
+
+  const target = normalize(modelAnswer);
+  const matched = alts.some(a => normalize(a) === target);
+
+  // Also try partial: if 70%+ chars match
+  const partialMatch = alts.some(a => {
+    const na = normalize(a);
+    if (!target.length) return false;
+    let hits = 0;
+    for (let ch of na) { if (target.includes(ch)) hits++; }
+    return (hits / target.length) >= 0.75 && na.length >= target.length * 0.7;
+  });
+
+  const vrb = document.getElementById('voice-result-box');
+  vrb.textContent = alts[0];
+
+  if (matched || partialMatch) {
+    vrb.className = 'voice-result-box correct';
+    correctCount++;
+    showFeedback('🎉 완벽해요! 정말 잘했어요! 👏', 'ok');
+    document.getElementById('next-row').style.display = 'flex';
+    document.getElementById('mic-status').textContent = '훌륭해요! ✅';
+    document.getElementById('mic-status').className = 'mic-status';
+    speakText('정말 잘했어요!');
+    if (currentStep === totalSteps - 1) {
+      setTimeout(showComplete, 1500);
+    }
+  } else {
+    vrb.className = 'voice-result-box wrong';
+    showFeedback('❌ 다시 해봐요! 위의 문장을 보고 따라 말해봐요 💪', 'err');
+    document.getElementById('mic-status').textContent = '다시 눌러서 말해봐요! 🎤';
+    document.getElementById('mic-status').className = 'mic-status';
+  }
+}
+
+function skipStep() {
+  stopMic();
+  showFeedback('💡 다음엔 꼭 말해봐요!', 'err');
+  document.getElementById('next-row').style.display = 'flex';
+  if (currentStep === totalSteps - 1) {
+    setTimeout(showComplete, 1000);
+  }
+}
+
+function nextStep() {
+  currentStep++;
+  if (currentStep >= totalSteps) {
+    showComplete();
+  } else {
+    loadStep();
+  }
+}
+
+function showComplete() {
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('complete-screen').style.display = 'block';
+
+  const pct = Math.round((correctCount / totalSteps) * 100);
+  let msg = '';
+  let stars = '';
+  if (pct === 100) { msg = '모든 문제를 완벽하게 맞혔어요! 최고예요! 🥇'; stars = '⭐⭐⭐'; }
+  else if (pct >= 66) { msg = '잘 하고 있어요! 조금 더 연습하면 완벽해질 거예요! 💪'; stars = '⭐⭐'; }
+  else { msg = '잘했어요! 다시 한번 도전해 보아요! 🌱'; stars = '⭐'; }
+
+  document.querySelector('.star-row').textContent = stars;
+  document.getElementById('complete-msg').textContent = msg;
+  document.getElementById('score-badge').textContent = `${correctCount} / ${totalSteps} 정답 (${pct}%)`;
+  document.getElementById('progress-bar').style.width = '100%';
+
+  launchConfetti();
+  speakText(msg);
+}
+
+function showFeedback(text, type) {
+  const fb = document.getElementById('feedback');
+  fb.textContent = text;
+  fb.className = 'feedback ' + type;
+  fb.style.display = 'block';
+}
+
+function goBack() {
+  stopMic();
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('complete-screen').style.display = 'none';
+  document.getElementById('situation-screen').style.display = 'block';
+  stopSpeech();
+}
+
+// ─── TTS ───────────────────────────────────────────────────────────────────
+let currentUtterance = null;
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  stopSpeech();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'ko-KR';
+  utter.rate = 0.85;
+  utter.pitch = 1.05;
+  // Try to find Korean voice
+  const voices = window.speechSynthesis.getVoices();
+  const koVoice = voices.find(v => v.lang.startsWith('ko'));
+  if (koVoice) utter.voice = koVoice;
+  currentUtterance = utter;
+  window.speechSynthesis.speak(utter);
+}
+function stopSpeech() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+}
+window.speechSynthesis && window.speechSynthesis.onvoiceschanged !== undefined
+  && (window.speechSynthesis.onvoiceschanged = () => {});
+
+// ─── CONFETTI ──────────────────────────────────────────────────────────────
+function launchConfetti() {
+  const wrap = document.getElementById('confetti');
+  wrap.innerHTML = '';
+  const colors = ['#ffd94a','#4ecb71','#3b9edd','#ff6b9d','#ff8c42','#9b72cf'];
+  for (let i = 0; i < 60; i++) {
+    const div = document.createElement('div');
+    div.className = 'confetti-piece';
+    div.style.left = Math.random() * 100 + 'vw';
+    div.style.top = '-20px';
+    div.style.background = colors[Math.floor(Math.random() * colors.length)];
+    div.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    div.style.animationDelay = (Math.random() * 1) + 's';
+    div.style.transform = `rotate(${Math.random()*360}deg)`;
+    wrap.appendChild(div);
+    setTimeout(() => div.remove(), 4000);
+  }
+}
+</script>
+</body>
+</html>
