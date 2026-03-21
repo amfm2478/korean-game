@@ -263,6 +263,74 @@
     line-height: 1.4;
   }
 
+  /* Menu board */
+  .menu-board {
+    background: #1a3a2a;
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .menu-board-title {
+    font-family: 'Jua', cursive;
+    color: #ffd94a;
+    font-size: 1rem;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+  .menu-board-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .menu-item {
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .menu-item-name { color: #fff; font-size: 0.95rem; font-weight: 700; }
+  .menu-item-price { color: #ffd94a; font-size: 0.9rem; font-weight: 700; }
+  .menu-item.selected-item { background: rgba(255,217,74,0.25); border: 1px solid #ffd94a; }
+
+  /* Receipt box */
+  .receipt-box {
+    background: #fff9f0;
+    border: 2px solid #e5bb00;
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    display: none;
+    font-size: 0.95rem;
+  }
+  .receipt-title {
+    font-family: 'Jua', cursive;
+    font-size: 1rem;
+    color: #5a4200;
+    text-align: center;
+    margin-bottom: 10px;
+    border-bottom: 1px dashed #e5bb00;
+    padding-bottom: 8px;
+  }
+  .receipt-row {
+    display: flex;
+    justify-content: space-between;
+    color: #5a4200;
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  .receipt-total {
+    border-top: 2px solid #e5bb00;
+    margin-top: 8px;
+    padding-top: 8px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #c85000;
+  }
+
   /* Voice repeat area */
   .repeat-area {
     display: none;
@@ -521,6 +589,11 @@
   <!-- STEP 1: Choose -->
   <div id="step-choose">
     <div class="step-label" id="step-choose-label">👆 하나를 골라봐요!</div>
+    <!-- Menu board (가격표) -->
+    <div class="menu-board" id="menu-board">
+      <div class="menu-board-title" id="menu-board-title">🍽️ 메뉴판</div>
+      <div class="menu-board-grid" id="menu-board-grid"></div>
+    </div>
     <div class="choice-grid" id="choice-grid"></div>
   </div>
 
@@ -529,6 +602,12 @@
     <div class="model-label">📣 이렇게 말해봐요:</div>
     <div class="model-text" id="model-text"></div>
     <button class="tts-btn" onclick="speakText(document.getElementById('model-text').innerText)" title="듣기">🔊 들어보기</button>
+  </div>
+
+  <!-- Receipt -->
+  <div class="receipt-box" id="receipt-box">
+    <div class="receipt-title">🧾 영수증</div>
+    <div id="receipt-rows"></div>
   </div>
 
   <!-- STEP 3: Voice Repeat -->
@@ -571,42 +650,82 @@ const SITUATIONS = {
     title: "🍽️ 식당 주문",
     icon: "🍜",
     npcAvatar: "👨‍🍳",
+    menuBoard: {
+      title: "🍽️ 오늘의 메뉴",
+      items: [
+        { icon: "🍜", label: "김치찌개", price: 8000 },
+        { icon: "🍱", label: "비빔밥", price: 9000 },
+        { icon: "🍗", label: "치킨", price: 15000 },
+        { icon: "🍕", label: "피자", price: 12000 },
+      ]
+    },
+    drinkMenu: [
+      { icon: "🧃", label: "주스", price: 2000 },
+      { icon: "🥤", label: "콜라", price: 1500 },
+      { icon: "🍵", label: "녹차", price: 1000 },
+      { icon: "💧", label: "물", price: 500 },
+    ],
     steps: [
       {
-        npcText: "어서 오세요! 뭘 주문하시겠어요?",
-        hint: "먹고 싶은 음식을 골라봐요",
+        npcText: "어서 오세요! 메뉴판 보시고 주문해 주세요!",
+        hint: "가격표를 보고 먹고 싶은 음식을 골라봐요",
         choiceLabel: "👆 먹고 싶은 음식을 골라봐요!",
+        showMenu: 'food',
         choices: [
-          { icon: "🍜", label: "김치찌개" },
-          { icon: "🍱", label: "비빔밥" },
-          { icon: "🍗", label: "치킨" },
-          { icon: "🍕", label: "피자" }
+          { icon: "🍜", label: "김치찌개", price: 8000 },
+          { icon: "🍱", label: "비빔밥", price: 9000 },
+          { icon: "🍗", label: "치킨", price: 15000 },
+          { icon: "🍕", label: "피자", price: 12000 },
         ],
-        modelFn: (c) => `${c} 1개 주세요.`
+        modelFn: (c) => `${c.label} 1개 주세요.`,
+        onSelect: (c, state) => { state.foodOrder = c; }
       },
       {
         npcText: "음료는 무엇으로 드릴까요?",
         hint: "마시고 싶은 음료를 골라봐요",
         choiceLabel: "👆 마시고 싶은 음료를 골라봐요!",
+        showMenu: 'drink',
         choices: [
-          { icon: "🧃", label: "주스" },
-          { icon: "🥤", label: "콜라" },
-          { icon: "🍵", label: "녹차" },
-          { icon: "💧", label: "물" }
+          { icon: "🧃", label: "주스", price: 2000 },
+          { icon: "🥤", label: "콜라", price: 1500 },
+          { icon: "🍵", label: "녹차", price: 1000 },
+          { icon: "💧", label: "물", price: 500 },
         ],
-        modelFn: (c) => `${c} 주세요.`
+        modelFn: (c) => `${c.label} 주세요.`,
+        onSelect: (c, state) => { state.drinkOrder = c; }
       },
       {
-        npcText: "얼마나 기다리실 수 있어요?",
-        hint: "기다릴 수 있는 시간을 골라봐요",
-        choiceLabel: "👆 기다릴 수 있는 시간을 골라봐요!",
+        npcText: "잠시만요, 주문 확인할게요!",
+        hint: "주문한 것과 가격을 확인해봐요",
+        choiceLabel: "👆 계산 방법을 골라봐요!",
+        showReceipt: true,
         choices: [
-          { icon: "⏱️", label: "5분" },
-          { icon: "🕐", label: "10분" },
-          { icon: "🕑", label: "20분" },
-          { icon: "😅", label: "괜찮아요" }
+          { icon: "💳", label: "카드로 낼게요" },
+          { icon: "💵", label: "현금으로 낼게요" },
+          { icon: "📱", label: "휴대폰으로 낼게요" },
+          { icon: "🎁", label: "상품권으로 낼게요" },
         ],
-        modelFn: (c) => c === "괜찮아요" ? "괜찮아요, 기다릴게요." : `${c} 정도 기다릴 수 있어요.`
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "",
+        hint: "거스름돈이 얼마인지 말해봐요",
+        choiceLabel: "👆 낼 돈을 골라봐요!",
+        showPayment: true,
+        isPaymentStep: true,
+        choices: [
+          { icon: "💵", label: "10,000원", amount: 10000 },
+          { icon: "💵", label: "20,000원", amount: 20000 },
+          { icon: "💵", label: "50,000원", amount: 50000 },
+          { icon: "💵", label: "딱 맞게", amount: 0 },
+        ],
+        modelFn: (c, state) => {
+          const total = (state.foodOrder?.price || 0) + (state.drinkOrder?.price || 0);
+          if (c.amount === 0) return `딱 맞게 ${total.toLocaleString()}원 드릴게요.`;
+          const change = c.amount - total;
+          if (change < 0) return `돈이 부족해요. 다른 걸로 낼게요.`;
+          return `${c.label} 드릴게요. 거스름돈은 ${change.toLocaleString()}원이에요.`;
+        }
       }
     ]
   },
@@ -615,46 +734,76 @@ const SITUATIONS = {
     title: "🛒 편의점 쇼핑",
     icon: "🏪",
     npcAvatar: "🧑‍💼",
+    menuBoard: {
+      title: "🏪 편의점 가격표",
+      items: [
+        { icon: "🍫", label: "초콜릿", price: 1500 },
+        { icon: "🥤", label: "음료수", price: 2000 },
+        { icon: "🍜", label: "컵라면", price: 1200 },
+        { icon: "🍞", label: "빵", price: 1800 },
+      ]
+    },
     steps: [
       {
-        npcText: "어서 오세요! 무엇을 찾으세요?",
+        npcText: "어서 오세요! 가격표 보시고 골라봐요!",
         hint: "사고 싶은 것을 골라봐요",
         choiceLabel: "👆 사고 싶은 것을 골라봐요!",
+        showMenu: 'store',
         choices: [
-          { icon: "🍫", label: "초콜릿" },
-          { icon: "🥤", label: "음료수" },
-          { icon: "🍜", label: "컵라면" },
-          { icon: "🍞", label: "빵" }
+          { icon: "🍫", label: "초콜릿", price: 1500 },
+          { icon: "🥤", label: "음료수", price: 2000 },
+          { icon: "🍜", label: "컵라면", price: 1200 },
+          { icon: "🍞", label: "빵", price: 1800 },
         ],
-        modelFn: (c) => `${c} 있어요?`
+        modelFn: (c) => `${c.label} 있어요?`,
+        onSelect: (c, state) => { state.storeItem = c; }
       },
       {
         npcText: "몇 개 드릴까요?",
         hint: "몇 개 살지 골라봐요",
         choiceLabel: "👆 몇 개 살지 골라봐요!",
         choices: [
-          { icon: "1️⃣", label: "1개" },
-          { icon: "2️⃣", label: "2개" },
-          { icon: "3️⃣", label: "3개" },
-          { icon: "🔢", label: "5개" }
+          { icon: "1️⃣", label: "1개", count: 1 },
+          { icon: "2️⃣", label: "2개", count: 2 },
+          { icon: "3️⃣", label: "3개", count: 3 },
+          { icon: "🔢", label: "5개", count: 5 },
         ],
-        modelFn: (c) => `${c} 주세요.`
+        modelFn: (c) => `${c.label} 주세요.`,
+        onSelect: (c, state) => { state.storeCount = c; }
       },
       {
-        npcText: "봉투 드릴까요?",
-        hint: "봉투가 필요한지 골라봐요",
-        choiceLabel: "👆 어떻게 할지 골라봐요!",
+        npcText: "잠시만요, 계산할게요!",
+        hint: "총 금액을 확인해봐요",
+        choiceLabel: "👆 계산 방법을 골라봐요!",
+        showReceipt: true,
         choices: [
-          { icon: "🛍️", label: "네, 주세요" },
-          { icon: "🚫", label: "아니요, 괜찮아요" },
-          { icon: "💳", label: "카드로 결제해요" },
-          { icon: "💵", label: "현금으로 낼게요" }
+          { icon: "💳", label: "카드로 낼게요" },
+          { icon: "💵", label: "현금으로 낼게요" },
+          { icon: "📱", label: "페이로 낼게요" },
+          { icon: "🚫", label: "봉투 필요 없어요" },
         ],
-        modelFn: (c) => {
-          if (c === "네, 주세요") return "네, 봉투 주세요.";
-          if (c === "아니요, 괜찮아요") return "아니요, 괜찮아요.";
-          if (c === "카드로 결제해요") return "카드로 결제할게요.";
-          return "현금으로 낼게요.";
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "",
+        hint: "거스름돈이 얼마인지 말해봐요",
+        choiceLabel: "👆 낼 돈을 골라봐요!",
+        showPayment: true,
+        isPaymentStep: true,
+        choices: [
+          { icon: "💵", label: "1,000원", amount: 1000 },
+          { icon: "💵", label: "5,000원", amount: 5000 },
+          { icon: "💵", label: "10,000원", amount: 10000 },
+          { icon: "💵", label: "딱 맞게", amount: 0 },
+        ],
+        modelFn: (c, state) => {
+          const item = state.storeItem;
+          const cnt = state.storeCount?.count || 1;
+          const total = (item?.price || 0) * cnt;
+          if (c.amount === 0) return `딱 맞게 ${total.toLocaleString()}원 드릴게요.`;
+          const change = c.amount - total;
+          if (change < 0) return `돈이 부족해요. 다른 걸로 낼게요.`;
+          return `${c.label} 드릴게요. 거스름돈은 ${change.toLocaleString()}원이에요.`;
         }
       }
     ]
@@ -859,7 +1008,8 @@ let totalSteps = 0;
 let selectedChoice = null;
 let modelAnswer = '';
 let correctCount = 0;
-let gamePhase = 'choose'; // 'choose' | 'model' | 'repeat'
+let gamePhase = 'choose';
+let gameState = {}; // 주문 내역 저장 (음식, 음료, 수량 등)
 
 // ─── MAIN FUNCTIONS ────────────────────────────────────────────────────────
 function startGame(situationKey) {
@@ -867,6 +1017,7 @@ function startGame(situationKey) {
   currentStep = 0;
   totalSteps = currentSituation.steps.length;
   correctCount = 0;
+  gameState = {};
 
   document.getElementById('situation-screen').style.display = 'none';
   document.getElementById('complete-screen').style.display = 'none';
@@ -878,39 +1029,106 @@ function startGame(situationKey) {
   loadStep();
 }
 
+function getTotal() {
+  if (currentSituation.title.includes('식당')) {
+    return (gameState.foodOrder?.price || 0) + (gameState.drinkOrder?.price || 0);
+  } else {
+    return (gameState.storeItem?.price || 0) * (gameState.storeCount?.count || 1);
+  }
+}
+
+function showMenuBoard(step) {
+  const board = document.getElementById('menu-board');
+  const boardGrid = document.getElementById('menu-board-grid');
+  const boardTitle = document.getElementById('menu-board-title');
+
+  if (step.showMenu) {
+    board.style.display = 'block';
+    let items = [];
+    if (step.showMenu === 'food') {
+      boardTitle.textContent = '🍽️ 오늘의 메뉴';
+      items = currentSituation.steps[0].choices;
+    } else if (step.showMenu === 'drink') {
+      boardTitle.textContent = '🥤 음료 메뉴';
+      items = step.choices;
+    } else if (step.showMenu === 'store') {
+      boardTitle.textContent = '🏪 편의점 가격표';
+      items = step.choices;
+    }
+    boardGrid.innerHTML = items.map(it =>
+      `<div class="menu-item${gameState.foodOrder?.label === it.label || gameState.storeItem?.label === it.label ? ' selected-item' : ''}">
+        <span class="menu-item-name">${it.icon} ${it.label}</span>
+        <span class="menu-item-price">${it.price?.toLocaleString()}원</span>
+      </div>`
+    ).join('');
+  } else {
+    board.style.display = 'none';
+  }
+}
+
+function showReceiptBox(step) {
+  const box = document.getElementById('receipt-box');
+  if (!step.showReceipt && !step.isPaymentStep) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  const rows = document.getElementById('receipt-rows');
+  let html = '';
+  const total = getTotal();
+
+  if (currentSituation.title.includes('식당')) {
+    if (gameState.foodOrder) html += `<div class="receipt-row"><span>${gameState.foodOrder.icon} ${gameState.foodOrder.label} 1개</span><span>${gameState.foodOrder.price.toLocaleString()}원</span></div>`;
+    if (gameState.drinkOrder) html += `<div class="receipt-row"><span>${gameState.drinkOrder.icon} ${gameState.drinkOrder.label} 1개</span><span>${gameState.drinkOrder.price.toLocaleString()}원</span></div>`;
+  } else {
+    if (gameState.storeItem && gameState.storeCount) {
+      html += `<div class="receipt-row"><span>${gameState.storeItem.icon} ${gameState.storeItem.label} ${gameState.storeCount.label}</span><span>${(gameState.storeItem.price * gameState.storeCount.count).toLocaleString()}원</span></div>`;
+    }
+  }
+  html += `<div class="receipt-row receipt-total"><span>합계</span><span>${total.toLocaleString()}원</span></div>`;
+  rows.innerHTML = html;
+}
+
 function loadStep() {
   const step = currentSituation.steps[currentStep];
   gamePhase = 'choose';
   selectedChoice = null;
 
-  // Progress
   const pct = (currentStep / totalSteps) * 100;
   document.getElementById('progress-bar').style.width = pct + '%';
 
-  // NPC speech
-  document.getElementById('npc-text').textContent = step.npcText;
+  // NPC 말 — 계산 단계면 동적으로 생성
+  let npcText = step.npcText;
+  if (step.isPaymentStep) {
+    const total = getTotal();
+    npcText = `총 ${total.toLocaleString()}원이에요. 얼마 내실 건가요?`;
+  }
+  document.getElementById('npc-text').textContent = npcText;
   document.getElementById('npc-hint').textContent = step.hint || '';
 
-  // Choices
+  // 메뉴판 표시
+  showMenuBoard(step);
+
+  // 영수증 표시
+  showReceiptBox(step);
+
+  // 보기 버튼
   document.getElementById('step-choose-label').textContent = step.choiceLabel;
   const grid = document.getElementById('choice-grid');
   grid.innerHTML = '';
-  step.choices.forEach((ch, i) => {
+  step.choices.forEach((ch) => {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
-    btn.innerHTML = `<span class="choice-icon">${ch.icon}</span><span>${ch.label}</span>`;
-    btn.onclick = () => selectChoice(ch.label, btn);
+    // 가격 있으면 가격도 표시
+    btn.innerHTML = `<span class="choice-icon">${ch.icon}</span><span>${ch.label}${ch.price ? '<br><small style="color:#e5bb00;font-size:0.8rem">'+ch.price.toLocaleString()+'원</small>' : ''}</span>`;
+    btn.onclick = () => selectChoice(ch, btn);
     grid.appendChild(btn);
   });
 
-  // Reset UI
+  // UI 초기화
   document.getElementById('step-choose').style.display = 'block';
   document.getElementById('model-box').style.display = 'none';
   document.getElementById('repeat-area').style.display = 'none';
   document.getElementById('feedback').style.display = 'none';
   document.getElementById('next-row').style.display = 'none';
 
-  // Reset voice UI
   stopMic();
   const vrb = document.getElementById('voice-result-box');
   vrb.textContent = '여기에 말한 내용이 나타나요';
@@ -920,23 +1138,27 @@ function loadStep() {
   document.getElementById('mic-btn').className = 'mic-btn';
 }
 
-function selectChoice(label, btn) {
+function selectChoice(ch, btn) {
   if (gamePhase !== 'choose') return;
 
-  // Highlight selected
   document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
-  selectedChoice = label;
+  selectedChoice = ch;
 
-  // Compute model answer
   const step = currentSituation.steps[currentStep];
-  modelAnswer = step.modelFn(label);
 
-  // Short delay then show model
+  // gameState에 선택 저장
+  if (step.onSelect) step.onSelect(ch, gameState);
+
+  // 모범 답변 계산
+  modelAnswer = step.modelFn(ch, gameState);
+
   setTimeout(() => {
     gamePhase = 'model';
     document.getElementById('model-text').textContent = modelAnswer;
     document.getElementById('model-box').style.display = 'block';
+    // 영수증 단계면 영수증 업데이트
+    if (step.showReceipt || step.isPaymentStep) showReceiptBox(step);
     speakText(modelAnswer);
 
     setTimeout(() => {
