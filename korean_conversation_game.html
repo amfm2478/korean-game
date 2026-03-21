@@ -1024,10 +1024,20 @@ function initRecognition() {
 
 function toggleMic() {
   if (gamePhase !== 'repeat') return;
-  if (isListening) {
-    stopMic();
+  if (isListening) { stopMic(); return; }
+  stopSpeech();
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        stream.getTracks().forEach(t => t.stop());
+        recognition = initRecognition();
+        if (recognition) recognition.start();
+      })
+      .catch(() => {
+        document.getElementById('mic-status').textContent = '마이크 권한을 허용해주세요! 주소창 옆 자물쇠 아이콘을 눌러봐요.';
+        document.getElementById('mic-status').className = 'mic-status active';
+      });
   } else {
-    stopSpeech(); // stop TTS before listening
     recognition = initRecognition();
     if (recognition) recognition.start();
   }
@@ -1050,13 +1060,25 @@ function evaluateVoice(alts) {
   const target = normalize(modelAnswer);
   const matched = alts.some(a => normalize(a) === target);
 
-  // Also try partial: if 70%+ chars match
+  // 핵심 단어 추출 (숫자 포함 2글자 이상 단어)
+  const keywords = modelAnswer.match(/[가-힣0-9]{2,}/g) || [];
+  const normalizedKeywords = keywords.map(k => normalize(k));
+
+  // 85% 이상 + 핵심단어 모두 포함해야 정답
   const partialMatch = alts.some(a => {
     const na = normalize(a);
     if (!target.length) return false;
+
+    // 글자 유사도 85% 체크
     let hits = 0;
     for (let ch of na) { if (target.includes(ch)) hits++; }
-    return (hits / target.length) >= 0.75 && na.length >= target.length * 0.7;
+    const similarity = hits / target.length;
+    const lengthOk = na.length >= target.length * 0.8;
+
+    // 핵심 단어가 모두 포함돼 있는지 체크
+    const keywordsOk = normalizedKeywords.every(kw => na.includes(kw));
+
+    return similarity >= 0.95 && lengthOk && keywordsOk;
   });
 
   const vrb = document.getElementById('voice-result-box');
