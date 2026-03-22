@@ -297,7 +297,7 @@
 
   <!-- Receipt -->
   <div class="receipt-box" id="receipt-box">
-    <div class="receipt-title">🧾 영수증</div>
+    <div class="receipt-title">🧾 영수증 <button class="tts-btn" onclick="speakText(buildReceiptSpeech())" title="영수증 내역 듣기">🔊</button></div>
     <div id="receipt-rows"></div>
   </div>
 
@@ -361,7 +361,6 @@ const SITUATIONS = {
         npcText: "어서 오세요! 메뉴판 보시고 주문해 주세요!",
         hint: "가격표를 보고 먹고 싶은 음식을 골라봐요",
         choiceLabel: "👆 먹고 싶은 음식을 골라봐요!",
-        showMenu: 'food',
         choices: [
           { icon: "🍜", label: "김치찌개", price: 8000 },
           { icon: "🍱", label: "비빔밥", price: 9000 },
@@ -375,7 +374,6 @@ const SITUATIONS = {
         npcText: "음료는 무엇으로 드릴까요?",
         hint: "마시고 싶은 음료를 골라봐요",
         choiceLabel: "👆 마시고 싶은 음료를 골라봐요!",
-        showMenu: 'drink',
         choices: [
           { icon: "🧃", label: "주스", price: 2000 },
           { icon: "🥤", label: "콜라", price: 1500 },
@@ -387,9 +385,33 @@ const SITUATIONS = {
       },
       {
         npcText: "잠시만요, 주문 확인할게요!",
-        hint: "주문한 것과 가격을 확인해봐요",
-        choiceLabel: "👆 계산 방법을 골라봐요!",
+        hint: "주문 내역이 맞는지 확인해봐요",
+        choiceLabel: "👆 주문 내역이 맞나요?",
         showReceipt: true,
+        choices: [
+          { icon: "✅", label: "네, 맞아요" },
+          { icon: "❌", label: "아니요, 달라요" },
+        ],
+        modelFn: (c) => c.label === "네, 맞아요"
+          ? "네, 맞아요."
+          : "아니요, 제가 주문한 것과 달라요."
+      },
+      {
+        npcText: "드시고 가시나요? 포장인가요?",
+        hint: "먹을 방법을 골라봐요",
+        choiceLabel: "👆 어떻게 드실 건가요?",
+        choices: [
+          { icon: "🍽️", label: "먹고 갈게요" },
+          { icon: "🛍️", label: "포장해 주세요" },
+        ],
+        modelFn: (c) => c.label === "먹고 갈게요"
+          ? "먹고 갈게요."
+          : "포장해 주세요."
+      },
+      {
+        npcText: "결제는 어떻게 해드릴까요?",
+        hint: "계산 방법을 골라봐요",
+        choiceLabel: "👆 결제 방법을 골라봐요!",
         choices: [
           { icon: "💳", label: "카드로 낼게요" },
           { icon: "💵", label: "현금으로 낼게요" },
@@ -402,7 +424,6 @@ const SITUATIONS = {
         npcText: "",
         hint: "거스름돈이 얼마인지 말해봐요",
         choiceLabel: "👆 낼 돈을 골라봐요!",
-        showPayment: true,
         isPaymentStep: true,
         choices: [
           { icon: "💵", label: "10,000원", amount: 10000 },
@@ -729,8 +750,16 @@ function getTotal() {
 
 function showReceiptBox(step) {
   const box = document.getElementById('receipt-box');
-  if (!step.showReceipt && !step.isPaymentStep) { box.style.display = 'none'; return; }
-  box.style.display = 'block';
+  // 영수증 단계 이후에도 계속 표시 (showReceipt 이후 단계 포함)
+  const receiptShown = currentStep >= currentSituation.steps.findIndex(s => s.showReceipt);
+  if (!step.showReceipt && !step.isPaymentStep && !receiptShown) { box.style.display = 'none'; return; }
+  if (receiptShown && (gameState.foodOrder || gameState.storeItem)) {
+    box.style.display = 'block';
+  } else if (!step.showReceipt && !step.isPaymentStep) {
+    box.style.display = 'none'; return;
+  } else {
+    box.style.display = 'block';
+  }
   const rows = document.getElementById('receipt-rows');
   let html = '';
   const total = getTotal();
@@ -794,8 +823,50 @@ function loadStep() {
   document.getElementById('mic-status').className = 'mic-status';
   document.getElementById('mic-btn').className = 'mic-btn';
 
-  // NPC 음성 자동 재생 (0.4초 후)
-  setTimeout(() => speakText(npcText), 400);
+  // NPC 음성 자동 재생 (0.4초 후) — 영수증 단계면 이어서 내역도 읽어줌
+  setTimeout(() => {
+    if (step.showReceipt) {
+      speakTextThen(npcText, buildReceiptSpeech());
+    } else {
+      speakText(npcText);
+    }
+  }, 400);
+}
+
+// 영수증 내역을 음성 문자열로 변환
+function buildReceiptSpeech() {
+  let parts = [];
+  if (currentSituation.title.includes('식당')) {
+    if (gameState.foodOrder) parts.push(`${gameState.foodOrder.label} 한 개, ${gameState.foodOrder.price.toLocaleString()}원`);
+    if (gameState.drinkOrder) parts.push(`${gameState.drinkOrder.label} 한 개, ${gameState.drinkOrder.price.toLocaleString()}원`);
+  } else {
+    if (gameState.storeItem && gameState.storeCount) {
+      const total = gameState.storeItem.price * gameState.storeCount.count;
+      parts.push(`${gameState.storeItem.label} ${gameState.storeCount.label}, ${total.toLocaleString()}원`);
+    }
+  }
+  const total = getTotal();
+  parts.push(`합계 ${total.toLocaleString()}원입니다.`);
+  return parts.join('. ');
+}
+
+// 첫 번째 문장 재생 후 이어서 두 번째 문장 재생
+function speakTextThen(first, second) {
+  if (!window.speechSynthesis) return;
+  stopSpeech();
+  const u1 = new SpeechSynthesisUtterance(first);
+  u1.lang = 'ko-KR'; u1.rate = 0.85; u1.pitch = 1.05;
+  const voices = window.speechSynthesis.getVoices();
+  const koVoice = voices.find(v => v.lang.startsWith('ko'));
+  if (koVoice) u1.voice = koVoice;
+
+  u1.onend = () => {
+    const u2 = new SpeechSynthesisUtterance(second);
+    u2.lang = 'ko-KR'; u2.rate = 0.85; u2.pitch = 1.05;
+    if (koVoice) u2.voice = koVoice;
+    window.speechSynthesis.speak(u2);
+  };
+  window.speechSynthesis.speak(u1);
 }
 
 function selectChoice(ch, btn) {
