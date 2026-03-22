@@ -727,27 +727,6 @@ function getTotal() {
   }
 }
 
-function loadStep() {
-  const step = currentSituation.steps[currentStep];
-  gamePhase = 'choose';
-  selectedChoice = null;
-
-  const pct = (currentStep / totalSteps) * 100;
-  document.getElementById('progress-bar').style.width = pct + '%';
-
-  // NPC 말 — 계산 단계면 동적으로 생성
-  let npcText = step.npcText;
-  if (step.isPaymentStep) {
-    const total = getTotal();
-    npcText = `총 ${total.toLocaleString()}원이에요. 얼마 내실 건가요?`;
-  }
-  document.getElementById('npc-text').textContent = npcText;
-  document.getElementById('npc-hint').textContent = step.hint || '';
-
-  // 영수증 표시
-  showReceiptBox(step);
-}
-
 function showReceiptBox(step) {
   const box = document.getElementById('receipt-box');
   if (!step.showReceipt && !step.isPaymentStep) { box.style.display = 'none'; return; }
@@ -755,7 +734,6 @@ function showReceiptBox(step) {
   const rows = document.getElementById('receipt-rows');
   let html = '';
   const total = getTotal();
-
   if (currentSituation.title.includes('식당')) {
     if (gameState.foodOrder) html += `<div class="receipt-row"><span>${gameState.foodOrder.icon} ${gameState.foodOrder.label} 1개</span><span>${gameState.foodOrder.price.toLocaleString()}원</span></div>`;
     if (gameState.drinkOrder) html += `<div class="receipt-row"><span>${gameState.drinkOrder.icon} ${gameState.drinkOrder.label} 1개</span><span>${gameState.drinkOrder.price.toLocaleString()}원</span></div>`;
@@ -815,6 +793,9 @@ function loadStep() {
   document.getElementById('mic-status').textContent = '마이크 버튼을 눌러봐요 👆';
   document.getElementById('mic-status').className = 'mic-status';
   document.getElementById('mic-btn').className = 'mic-btn';
+
+  // NPC 음성 자동 재생 (0.4초 후)
+  setTimeout(() => speakText(npcText), 400);
 }
 
 function selectChoice(ch, btn) {
