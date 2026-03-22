@@ -925,7 +925,7 @@ function initRecognition() {
     document.getElementById('mic-status').className = 'mic-status active';
   };
 
-  let evalTimer = null; // 평가 대기 타이머
+  let evalTimer = null;
 
   rec.onresult = (e) => {
     let interim = '';
@@ -937,9 +937,7 @@ function initRecognition() {
     }
     const display = final || interim;
     document.getElementById('voice-result-box').textContent = display || '🎤 듣고 있어요...';
-
     if (final) {
-      // 모든 후보 수집
       const alts = [];
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
@@ -948,14 +946,7 @@ function initRecognition() {
           }
         }
       }
-      // 문장 길이에 따라 대기 시간 결정 (짧은 문장 2초, 긴 문장 3초)
-      const waitMs = final.length >= 10 ? 3000 : 2000;
-      document.getElementById('mic-status').textContent = `잠깐만요... 확인 중이에요 ⏳`;
-      if (evalTimer) clearTimeout(evalTimer);
-      evalTimer = setTimeout(() => {
-        stopMic();
-        evaluateVoice(alts.length ? alts : [final]);
-      }, waitMs);
+      evaluateVoice(alts.length ? alts : [final]);
     }
   };
 
