@@ -1055,9 +1055,16 @@ function evaluateVoice(alts) {
   }
 
   const normalize = s => {
-    let r = s.replace(/[.,!?~·\s]/g, '').toLowerCase();
-    r = normalizeKoreanNums(r);
-    r = convertNums(r);
+    let r = s.toLowerCase();
+    // 1단계: "5만", "4만 원" 같은 한글+숫자 혼합 표현 먼저 처리 (공백 있을 때)
+    r = r.replace(/(\d+)\s*만\s*(\d*)/g, (_, a, b) => numToKorean(parseInt(a)) + '만' + (b ? numToKorean(parseInt(b)) : ''));
+    r = r.replace(/(\d+)\s*천\s*(\d*)/g, (_, a, b) => numToKorean(parseInt(a)) + '천' + (b ? numToKorean(parseInt(b)) : ''));
+    r = r.replace(/(\d+)\s*백/g, (_, n) => numToKorean(parseInt(n)) + '백');
+    r = r.replace(/(\d+)\s*십/g, (_, n) => numToKorean(parseInt(n)) + '십');
+    // 2단계: 공백/특수문자 제거
+    r = r.replace(/[.,!?~·\s]/g, '');
+    // 3단계: 남은 아라비아 숫자(쉼표 포함) 전체를 한글로 변환
+    r = r.replace(/[\d,]+/g, m => numToKorean(parseInt(m.replace(/,/g, ''))));
     return r;
   };
 
