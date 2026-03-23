@@ -1701,9 +1701,11 @@ function goHome() {
   document.getElementById('situation-screen').style.display = 'block';
 }
 
-async function selectAITopic(topic, icon, desc) {
+function selectAITopic(topic, icon, desc) {
   aiTopic = topic;
   aiConvoHistory = [];
+  aiScenarioIndex = 0;
+  aiUsedFreeReply = false;
   document.getElementById('ai-topic-screen').style.display = 'none';
   document.getElementById('ai-convo-screen').style.display = 'block';
   document.getElementById('ai-choices-area').style.display = 'none';
@@ -1712,8 +1714,75 @@ async function selectAITopic(topic, icon, desc) {
   document.getElementById('ai-next-row').style.display = 'none';
   document.getElementById('ai-feedback').style.display = 'none';
   document.getElementById('ai-npc-text').textContent = '잠깐만요, 생각 중이에요...';
-  await fetchAITurn(null);
+  fetchAITurn(null);
 }
+
+// ─── 사전 제작 대화 시나리오 (오프라인 fallback) ────────────────────────────
+const AI_SCENARIOS = {
+  '일상': [
+    { ai: "오늘 날씨가 어때요? 기분은 좋아요?", choices: ["날씨가 좋아요.", "조금 흐려요.", "모르겠어요."] },
+    { ai: "오늘 하루 어떻게 보냈어요?", choices: ["학교 다녀왔어요.", "집에 있었어요.", "친구랑 놀았어요."] },
+    { ai: "요즘 재미있는 일 있었어요?", choices: ["네, 있었어요.", "별로 없었어요.", "생각 중이에요."] },
+    { ai: "지금 기분이 어때요?", choices: ["기분이 좋아요.", "조금 피곤해요.", "괜찮아요."] },
+    { ai: "오늘 뭐 먹었어요?", choices: ["밥 먹었어요.", "빵 먹었어요.", "아직 안 먹었어요."] },
+    { ai: "주말에 뭐 할 거예요?", choices: ["집에 있을 거예요.", "나갈 거예요.", "아직 모르겠어요."] },
+    { ai: "요즘 잠은 잘 자고 있어요?", choices: ["네, 잘 자요.", "조금 못 자요.", "많이 자요."] },
+    { ai: "오늘 좋은 일이 있었나요?", choices: ["네, 있었어요.", "별로 없었어요.", "있었으면 좋겠어요."] },
+  ],
+  '학교': [
+    { ai: "오늘 학교에서 어떤 수업을 했어요?", choices: ["수학 수업 했어요.", "국어 수업 했어요.", "체육 수업 했어요."] },
+    { ai: "학교생활이 재미있어요?", choices: ["네, 재미있어요.", "조금 힘들어요.", "그냥 그래요."] },
+    { ai: "친한 친구가 있어요?", choices: ["네, 있어요.", "조금 있어요.", "아직 없어요."] },
+    { ai: "오늘 급식은 맛있었어요?", choices: ["네, 맛있었어요.", "별로였어요.", "괜찮았어요."] },
+    { ai: "숙제가 많아요?", choices: ["네, 많아요.", "조금 있어요.", "없어요."] },
+    { ai: "학교에서 제일 좋아하는 과목이 뭐예요?", choices: ["체육이요.", "미술이요.", "음악이요."] },
+    { ai: "쉬는 시간에 뭐 해요?", choices: ["친구랑 얘기해요.", "쉬어요.", "음악 들어요."] },
+    { ai: "선생님은 어때요?", choices: ["친절해요.", "좋아요.", "무서워요."] },
+  ],
+  '가족': [
+    { ai: "오늘 엄마한테 뭐라고 했어요?", choices: ["사랑해요 했어요.", "다녀왔어요 했어요.", "감사해요 했어요."] },
+    { ai: "가족이랑 같이 밥 먹었어요?", choices: ["네, 같이 먹었어요.", "혼자 먹었어요.", "아직이요."] },
+    { ai: "아빠는 요즘 어때요?", choices: ["바쁘신 것 같아요.", "건강하세요.", "잘 모르겠어요."] },
+    { ai: "가족이랑 같이 뭐 하고 싶어요?", choices: ["여행 가고 싶어요.", "맛있는 거 먹고 싶어요.", "같이 영화 보고 싶어요."] },
+    { ai: "엄마 아빠한테 하고 싶은 말이 있어요?", choices: ["사랑해요.", "감사해요.", "고생하세요."] },
+    { ai: "가족 중에 누가 제일 좋아요?", choices: ["엄마요.", "아빠요.", "다 좋아요."] },
+    { ai: "오늘 집에서 뭐 했어요?", choices: ["TV 봤어요.", "쉬었어요.", "숙제 했어요."] },
+    { ai: "가족이랑 어디 가고 싶어요?", choices: ["놀이공원 가고 싶어요.", "바다 가고 싶어요.", "맛집 가고 싶어요."] },
+  ],
+  '취미': [
+    { ai: "요즘 뭐가 제일 재미있어요?", choices: ["음악 듣는 게 좋아요.", "게임이 재미있어요.", "영상 보는 게 좋아요."] },
+    { ai: "좋아하는 음악이 있어요?", choices: ["K-POP 좋아해요.", "발라드 좋아해요.", "여러 가지 좋아해요."] },
+    { ai: "게임 좋아해요?", choices: ["네, 좋아해요.", "조금 해요.", "별로 안 해요."] },
+    { ai: "그림 그리는 거 좋아해요?", choices: ["네, 좋아해요.", "가끔 그려요.", "잘 못 그려요."] },
+    { ai: "영화나 드라마 보는 거 좋아해요?", choices: ["네, 좋아해요.", "가끔 봐요.", "별로 안 봐요."] },
+    { ai: "운동은 좋아해요?", choices: ["네, 좋아해요.", "조금 해요.", "별로 안 해요."] },
+    { ai: "요즘 유튜브 많이 봐요?", choices: ["네, 많이 봐요.", "가끔 봐요.", "별로 안 봐요."] },
+    { ai: "취미로 배우고 싶은 게 있어요?", choices: ["기타 배우고 싶어요.", "그림 배우고 싶어요.", "요리 배우고 싶어요."] },
+  ],
+  '식당/쇼핑': [
+    { ai: "어서 오세요! 뭘 드릴까요?", choices: ["김치찌개 주세요.", "비빔밥 주세요.", "메뉴판 보여주세요."] },
+    { ai: "음료는 뭐로 드릴까요?", choices: ["물 주세요.", "콜라 주세요.", "주스 주세요."] },
+    { ai: "드시고 가실 건가요?", choices: ["네, 먹고 갈게요.", "포장해 주세요.", "잠깐만요."] },
+    { ai: "계산은 어떻게 해드릴까요?", choices: ["카드로 할게요.", "현금으로 낼게요.", "휴대폰으로 할게요."] },
+    { ai: "어서 오세요! 무엇을 찾으세요?", choices: ["음료수 있어요?", "과자 있어요?", "컵라면 있어요?"] },
+    { ai: "봉투 드릴까요?", choices: ["네, 주세요.", "아니요, 괜찮아요.", "작은 걸로 주세요."] },
+    { ai: "맛있었어요? 또 오세요!", choices: ["네, 맛있었어요.", "감사합니다.", "또 올게요."] },
+    { ai: "도움이 필요하세요?", choices: ["네, 이것 좀 봐주세요.", "괜찮아요, 혼자 볼게요.", "계산대가 어디예요?"] },
+  ],
+  '자유': [
+    { ai: "안녕하세요! 오늘 기분이 어때요?", choices: ["좋아요!", "그냥 그래요.", "조금 피곤해요."] },
+    { ai: "오늘 뭐 하고 싶어요?", choices: ["쉬고 싶어요.", "맛있는 거 먹고 싶어요.", "산책하고 싶어요."] },
+    { ai: "요즘 힘든 게 있어요?", choices: ["조금 있어요.", "별로 없어요.", "말하기 어려워요."] },
+    { ai: "제일 좋아하는 음식이 뭐예요?", choices: ["치킨이요!", "피자요!", "라면이요!"] },
+    { ai: "어디 여행 가고 싶어요?", choices: ["바다 가고 싶어요.", "산 가고 싶어요.", "외국 가고 싶어요."] },
+    { ai: "꿈이 뭐예요?", choices: ["아직 모르겠어요.", "행복하게 살고 싶어요.", "좋아하는 일 하고 싶어요."] },
+    { ai: "친구한테 하고 싶은 말이 있어요?", choices: ["같이 놀자!", "고마워.", "잘 지내?"] },
+    { ai: "오늘 하루 수고했어요! 마지막으로 한마디 해봐요.", choices: ["감사해요!", "재미있었어요!", "내일도 열심히 할게요!"] },
+  ],
+};
+
+let aiScenarioIndex = 0;
+let aiUsedFreeReply = false;
 
 async function fetchAITurn(userReply) {
   document.getElementById('ai-loading').style.display = 'block';
@@ -1721,30 +1790,25 @@ async function fetchAITurn(userReply) {
   document.getElementById('ai-next-row').style.display = 'none';
   document.getElementById('ai-feedback').style.display = 'none';
 
-  // 대화 이력에 사용자 답변 추가
-  if (userReply) {
-    aiConvoHistory.push({ role: 'user', content: userReply });
-  }
+  if (userReply) aiUsedFreeReply = true;
 
   const systemPrompt = `너는 자폐성 장애가 있는 한국 고등학교 1학년 학생과 대화 연습을 도와주는 친근한 AI야.
 주제: ${aiTopic}
-
 규칙:
 1. 짧고 쉬운 한국어로 자연스럽게 말을 걸어줘 (1~2문장)
 2. 학생이 대답할 수 있는 자연스러운 답변 예시 3개를 만들어줘
 3. 답변 예시는 짧고 쉬운 문장으로, 실제로 그 학생이 말할 법한 내용이어야 해
 4. 반드시 아래 JSON 형식으로만 답해줘:
-
 {"ai": "AI가 하는 말", "choices": ["답변예시1", "답변예시2", "답변예시3"]}
-
 JSON 외에 다른 텍스트는 절대 출력하지 마.`;
 
+  // Netlify Functions를 통해 API 호출
   try {
     const messages = aiConvoHistory.length > 0
       ? aiConvoHistory
       : [{ role: 'user', content: `${aiTopic} 주제로 대화를 시작해줘.` }];
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/.netlify/functions/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1760,41 +1824,51 @@ JSON 외에 다른 텍스트는 절대 출력하지 마.`;
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
-    document.getElementById('ai-loading').style.display = 'none';
-
-    // AI 말 표시 + TTS
-    document.getElementById('ai-npc-text').textContent = parsed.ai;
-    speakText(parsed.ai);
-
-    // 대화 이력에 AI 답변 추가
     aiConvoHistory.push({ role: 'assistant', content: raw });
+    if (userReply) aiConvoHistory.push({ role: 'user', content: userReply });
 
-    // 답변 예시 카드 생성
-    const grid = document.getElementById('ai-choice-grid');
-    grid.innerHTML = '';
-    parsed.choices.forEach(choice => {
-      const btn = document.createElement('button');
-      btn.className = 'choice-btn';
-      btn.style.justifyContent = 'flex-start';
-      btn.innerHTML = `<span class="choice-icon">💬</span><span class="choice-label">${choice}</span>`;
-      btn.onclick = () => selectAIChoice(choice, btn);
-      grid.appendChild(btn);
-    });
-
-    document.getElementById('ai-choices-area').style.display = 'block';
-
-    // 마이크/모델박스 리셋
-    document.getElementById('ai-model-box').style.display = 'none';
-    document.getElementById('ai-repeat-area').style.display = 'none';
-    const vb = document.getElementById('ai-voice-box');
-    vb.textContent = '여기에 말한 내용이 나타나요';
-    vb.className = 'voice-result-box';
+    showAIResponse(parsed.ai, parsed.choices);
 
   } catch(e) {
-    document.getElementById('ai-loading').style.display = 'none';
-    document.getElementById('ai-npc-text').textContent = '앗, 연결에 문제가 생겼어요. 다시 시도해봐요!';
-    console.error('AI 오류:', e);
+    // API 실패 시 사전 시나리오로 fallback
+    console.warn('API 호출 실패, 시나리오 모드로 전환:', e);
+    const scenarios = AI_SCENARIOS[aiTopic] || AI_SCENARIOS['자유'];
+    const scenario = scenarios[aiScenarioIndex % scenarios.length];
+    aiScenarioIndex++;
+    let aiText = scenario.ai;
+    if (aiUsedFreeReply && userReply) {
+      const reactions = ['그렇군요! ', '아, 그래요? ', '좋아요! ', '잘했어요! '];
+      aiText = reactions[Math.floor(Math.random() * reactions.length)] + scenario.ai;
+      aiUsedFreeReply = false;
+    }
+    showAIResponse(aiText, scenario.choices);
   }
+}
+
+function showAIResponse(aiText, choices) {
+  document.getElementById('ai-loading').style.display = 'none';
+  document.getElementById('ai-npc-text').textContent = aiText;
+  speakText(aiText);
+
+  const grid = document.getElementById('ai-choice-grid');
+  grid.innerHTML = '';
+  choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.style.justifyContent = 'flex-start';
+    btn.innerHTML = `<span class="choice-icon">💬</span><span class="choice-label">${choice}</span>`;
+    btn.onclick = () => selectAIChoice(choice, btn);
+    grid.appendChild(btn);
+  });
+
+  document.getElementById('ai-choices-area').style.display = 'block';
+  document.getElementById('ai-free-btn').style.display = 'block';
+  document.getElementById('ai-free-area').style.display = 'none';
+  document.getElementById('ai-model-box').style.display = 'none';
+  document.getElementById('ai-repeat-area').style.display = 'none';
+  const vb = document.getElementById('ai-voice-box');
+  vb.textContent = '여기에 말한 내용이 나타나요';
+  vb.className = 'voice-result-box';
 }
 
 function selectAIChoice(choice, btn) {
@@ -1822,14 +1896,14 @@ function selectAIChoice(choice, btn) {
   }, 1200);
 }
 
-async function continueAIChat() {
+function continueAIChat() {
   const chosen = aiModelAnswer;
   document.getElementById('ai-next-row').style.display = 'none';
   document.getElementById('ai-model-box').style.display = 'none';
   document.getElementById('ai-repeat-area').style.display = 'none';
   document.getElementById('ai-feedback').style.display = 'none';
   document.getElementById('ai-npc-text').textContent = '잠깐만요, 생각 중이에요...';
-  await fetchAITurn(chosen);
+  fetchAITurn(chosen);
 }
 
 function skipAIStep() {
@@ -1982,7 +2056,7 @@ function stopFreeMic() {
   document.getElementById('ai-free-mic-btn').className = 'mic-btn';
 }
 
-async function processFreeReply(spokenText) {
+function processFreeReply(spokenText) {
   // 인식된 내 말을 화면에 표시
   const vb = document.getElementById('ai-free-voice-box');
   vb.textContent = `"${spokenText}"`;
@@ -1999,7 +2073,7 @@ async function processFreeReply(spokenText) {
     document.getElementById('ai-repeat-area').style.display = 'none';
     document.getElementById('ai-feedback').style.display = 'none';
     document.getElementById('ai-npc-text').textContent = '잠깐만요, 생각 중이에요...';
-    await fetchAITurn(spokenText);
+    fetchAITurn(spokenText);
   }, 800);
 }
 
