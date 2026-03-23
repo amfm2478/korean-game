@@ -1790,23 +1790,33 @@ async function fetchAITurn(userReply) {
   document.getElementById('ai-next-row').style.display = 'none';
   document.getElementById('ai-feedback').style.display = 'none';
 
-  if (userReply) aiUsedFreeReply = true;
+  // 사용자 답변을 먼저 이력에 추가 (AI가 맥락을 알 수 있도록)
+  if (userReply) {
+    aiConvoHistory.push({ role: 'user', content: userReply });
+    aiUsedFreeReply = true;
+  }
 
-  const systemPrompt = `너는 자폐성 장애가 있는 한국 고등학교 1학년 학생과 대화 연습을 도와주는 친근한 AI야.
+  const systemPrompt = `너는 자폐성 장애가 있는 한국 고등학교 1학년 학생과 1:1 대화 연습을 도와주는 친근한 친구야.
 주제: ${aiTopic}
-규칙:
-1. 짧고 쉬운 한국어로 자연스럽게 말을 걸어줘 (1~2문장)
-2. 학생이 대답할 수 있는 자연스러운 답변 예시 3개를 만들어줘
-3. 답변 예시는 짧고 쉬운 문장으로, 실제로 그 학생이 말할 법한 내용이어야 해
-4. 반드시 아래 JSON 형식으로만 답해줘:
+
+핵심 규칙:
+1. 반드시 이전 대화 내용을 이어받아 자연스럽게 대화해줘
+   - 학생이 "나가고 싶어요" 라고 하면 → "어디 가고 싶어요?" 처럼 연결해줘
+   - 학생이 "치킨 좋아요" 라고 하면 → "어떤 치킨 좋아해요?" 처럼 더 물어봐줘
+   - 학생이 "피곤해요" 라고 하면 → "왜 피곤해요? 많이 힘들었어요?" 처럼 공감해줘
+2. 절대 이전 대화와 관계없는 새로운 주제로 바꾸지 마
+3. 짧고 쉬운 한국어로 (1~2문장)
+4. 학생이 대답하기 쉬운 답변 예시 3개 (짧고 자연스럽게)
+5. 반드시 아래 JSON 형식으로만 답해줘:
 {"ai": "AI가 하는 말", "choices": ["답변예시1", "답변예시2", "답변예시3"]}
-JSON 외에 다른 텍스트는 절대 출력하지 마.`;
+JSON 외 다른 텍스트 절대 금지.`;
 
   // Netlify Functions를 통해 API 호출
   try {
-    const messages = aiConvoHistory.length > 0
-      ? aiConvoHistory
-      : [{ role: 'user', content: `${aiTopic} 주제로 대화를 시작해줘.` }];
+    // 대화 이력이 없으면 시작 메시지
+    if (aiConvoHistory.length === 0) {
+      aiConvoHistory.push({ role: 'user', content: `${aiTopic} 주제로 자연스럽게 대화를 시작해줘.` });
+    }
 
     const res = await fetch('/.netlify/functions/chat', {
       method: 'POST',
@@ -1815,7 +1825,7 @@ JSON 외에 다른 텍스트는 절대 출력하지 마.`;
         model: 'claude-sonnet-4-20250514',
         max_tokens: 500,
         system: systemPrompt,
-        messages: messages
+        messages: aiConvoHistory
       })
     });
 
@@ -1824,8 +1834,8 @@ JSON 외에 다른 텍스트는 절대 출력하지 마.`;
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
+    // AI 답변을 이력에 추가
     aiConvoHistory.push({ role: 'assistant', content: raw });
-    if (userReply) aiConvoHistory.push({ role: 'user', content: userReply });
 
     showAIResponse(parsed.ai, parsed.choices);
 
