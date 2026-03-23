@@ -91,6 +91,14 @@
   }
   .back-btn:hover { background: #eee; }
 
+  .home-btn {
+    background: var(--white); border: none; border-radius: 50%;
+    width: 32px; height: 32px; font-size: 1rem; cursor: pointer;
+    box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .home-btn:hover { background: #eee; }
+
   .game-title { font-family: 'Jua', cursive; font-size: 1.1rem; color: var(--deep); }
 
   .progress-bar-wrap { background: #ddd; border-radius: 999px; height: 7px; flex: 1; overflow: hidden; }
@@ -258,17 +266,167 @@
       <div class="label">전화 통화</div>
       <div class="desc">전화를 해봐요</div>
     </div>
+    <div class="sit-card" data-color="blue" onclick="startGame('family_morning')">
+      <span class="icon">🌅</span>
+      <div class="label">아침 인사</div>
+      <div class="desc">아침 대화를 해봐요</div>
+    </div>
+    <div class="sit-card" data-color="orange" onclick="startGame('family_meal')">
+      <span class="icon">🍚</span>
+      <div class="label">식사 시간</div>
+      <div class="desc">밥 먹을 때 대화해봐요</div>
+    </div>
+    <div class="sit-card" data-color="green" onclick="startGame('family_school')">
+      <span class="icon">🎒</span>
+      <div class="label">학교 다녀왔을 때</div>
+      <div class="desc">학교 얘기를 해봐요</div>
+    </div>
+    <div class="sit-card" data-color="pink" onclick="startGame('family_feeling')">
+      <span class="icon">💬</span>
+      <div class="label">상태 표현</div>
+      <div class="desc">기분/몸 상태 말해봐요</div>
+    </div>
+    <div class="sit-card" data-color="purple" onclick="startGame('family_outing')">
+      <span class="icon">👟</span>
+      <div class="label">외출 / 귀가 인사</div>
+      <div class="desc">나갈 때 들어올 때</div>
+    </div>
+    <!-- AI 자유 대화 카드 (강조) -->
+    <div class="sit-card ai-card" data-color="blue" onclick="startAIChat()" style="grid-column: span 3; background: linear-gradient(135deg,#1a5c8a,#3b9edd); border-color:#ffd94a; border-width:3px;">
+      <span class="icon">🤖</span>
+      <div class="label" style="color:#fff; font-size:1.1rem;">AI 자유 대화</div>
+      <div class="desc" style="color:#cce9ff;">주제를 골라 AI와 자연스럽게 대화해봐요!</div>
+    </div>
+  </div>
+</div>
+
+<!-- AI 자유 대화 화면 -->
+<div id="ai-chat-screen" style="display:none; width:100%; max-width:700px;">
+  <div class="game-header">
+    <button class="back-btn" onclick="goAIChatBack()" title="이전">←</button>
+    <span class="game-title">🤖 AI 자유 대화</span>
+    <button class="home-btn" onclick="goHome()" title="처음으로">☰</button>
+  </div>
+
+  <!-- 주제 선택 화면 -->
+  <div id="ai-topic-screen">
+    <div style="text-align:center; font-family:'Jua',cursive; font-size:1rem; color:var(--deep); margin-bottom:10px;">대화 주제를 골라봐요! 🎯</div>
+    <div class="choice-grid" style="grid-template-columns: repeat(3,1fr); gap:8px;">
+      <button class="choice-btn" onclick="selectAITopic('일상','😊','날씨, 기분, 오늘 하루')">
+        <span class="choice-icon">😊</span>
+        <span class="choice-label">일상</span>
+        <span class="choice-price" style="color:#888;">날씨·기분</span>
+      </button>
+      <button class="choice-btn" onclick="selectAITopic('학교','🏫','수업, 친구, 급식')">
+        <span class="choice-icon">🏫</span>
+        <span class="choice-label">학교</span>
+        <span class="choice-price" style="color:#888;">수업·친구</span>
+      </button>
+      <button class="choice-btn" onclick="selectAITopic('가족','👨‍👩‍👧','엄마, 아빠, 형제')">
+        <span class="choice-icon">👨‍👩‍👧</span>
+        <span class="choice-label">가족</span>
+        <span class="choice-price" style="color:#888;">엄마·아빠</span>
+      </button>
+      <button class="choice-btn" onclick="selectAITopic('취미','🎮','좋아하는 것, 게임, 음악')">
+        <span class="choice-icon">🎮</span>
+        <span class="choice-label">취미</span>
+        <span class="choice-price" style="color:#888;">게임·음악</span>
+      </button>
+      <button class="choice-btn" onclick="selectAITopic('식당/쇼핑','🛒','주문, 계산, 쇼핑')">
+        <span class="choice-icon">🛒</span>
+        <span class="choice-label">식당/쇼핑</span>
+        <span class="choice-price" style="color:#888;">주문·계산</span>
+      </button>
+      <button class="choice-btn" onclick="selectAITopic('자유','🗣️','아무 주제나 OK')">
+        <span class="choice-icon">🗣️</span>
+        <span class="choice-label">자유</span>
+        <span class="choice-price" style="color:#888;">무엇이든</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 대화 화면 -->
+  <div id="ai-convo-screen" style="display:none;">
+    <!-- AI 말풍선 -->
+    <div class="scene-box" style="margin-bottom:8px;">
+      <div class="npc-row">
+        <span class="npc-avatar">🤖</span>
+        <div class="speech-bubble">
+          <span id="ai-npc-text">잠깐만요, 생각 중이에요...</span>
+          <button class="tts-btn" onclick="speakText(document.getElementById('ai-npc-text').innerText)">🔊</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 로딩 표시 -->
+    <div id="ai-loading" style="display:none; text-align:center; padding:12px; font-size:0.9rem; color:#888;">
+      💭 AI가 생각 중이에요...
+    </div>
+
+    <!-- 답변 예시 카드 -->
+    <div id="ai-choices-area" style="display:none;">
+      <div class="step-label">👆 답변을 골라봐요! 또는 내 생각을 직접 말해봐요 🎤</div>
+      <div id="ai-choice-grid" class="choice-grid" style="grid-template-columns: 1fr;"></div>
+      <!-- 내 생각 말하기 버튼 -->
+      <div style="margin-top:8px;">
+        <button id="ai-free-btn" class="btn btn-primary" style="width:100%; font-size:0.95rem; padding:10px;" onclick="startFreeSpeak()">
+          🎙️ 내 생각 직접 말하기
+        </button>
+        <div id="ai-free-area" style="display:none; margin-top:8px;">
+          <div class="voice-result-box" id="ai-free-voice-box">마이크를 눌러서 자유롭게 말해봐요!</div>
+          <div style="display:flex; gap:8px; justify-content:center; margin-top:8px;">
+            <button class="mic-btn" id="ai-free-mic-btn" onclick="toggleFreeMic()" style="width:56px;height:56px;font-size:1.6rem;">🎤</button>
+          </div>
+          <div class="mic-status" id="ai-free-mic-status">마이크 버튼을 눌러봐요 👆</div>
+          <div class="btn-row" style="margin-top:6px;">
+            <button class="btn btn-secondary" style="font-size:0.85rem;" onclick="cancelFreeSpeak()">취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 모범 답변 -->
+    <div class="model-box" id="ai-model-box" style="display:none;">
+      <div class="model-label">📣 이렇게 말해봐요:</div>
+      <div class="model-text" id="ai-model-text"></div>
+      <button class="tts-btn" onclick="speakText(document.getElementById('ai-model-text').innerText)">🔊 들어보기</button>
+    </div>
+
+    <!-- 마이크 영역 -->
+    <div class="repeat-area" id="ai-repeat-area" style="display:none;">
+      <div class="repeat-label">🎤 마이크를 누르고 큰 소리로 말해봐요!</div>
+      <div class="voice-result-box" id="ai-voice-box">여기에 말한 내용이 나타나요</div>
+      <button class="mic-btn" id="ai-mic-btn" onclick="toggleAIMic()">🎤</button>
+      <div class="mic-status" id="ai-mic-status">마이크 버튼을 눌러봐요 👆</div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="skipAIStep()">건너뛰기</button>
+      </div>
+    </div>
+
+    <div class="feedback" id="ai-feedback"></div>
+
+    <!-- 다음 대화 버튼 -->
+    <div class="btn-row" id="ai-next-row" style="display:none; margin-top:8px;">
+      <button class="btn btn-success" onclick="continueAIChat()">계속 대화하기 💬</button>
+      <button class="btn btn-secondary" onclick="goAIChatBack()">주제 바꾸기</button>
+    </div>
+  </div>
+</div>
+      <div class="label">외출 / 귀가 인사</div>
+      <div class="desc">나갈 때 들어올 때</div>
+    </div>
   </div>
 </div>
 
 <!-- GAME SCREEN -->
 <div id="game-screen">
   <div class="game-header">
-    <button class="back-btn" onclick="goBack()">←</button>
+    <button class="back-btn" onclick="goPrevStep()" title="이전 단계">←</button>
     <span class="game-title" id="game-title"></span>
     <div class="progress-bar-wrap">
       <div class="progress-bar" id="progress-bar" style="width:0%"></div>
     </div>
+    <button class="home-btn" onclick="goHome()" title="처음으로">☰</button>
   </div>
 
   <div class="scene-box">
@@ -536,7 +694,7 @@ const SITUATIONS = {
           { icon: "🌟", label: "처음 만나요" },
           { icon: "😄", label: "저도 반가워요" }
         ],
-        modelFn: (c) => `${c}! 제 이름은 민지예요.`
+        modelFn: (c) => `${c.label}! 제 이름은 민지예요.`
       },
       {
         npcText: "몇 학년이에요?",
@@ -548,7 +706,7 @@ const SITUATIONS = {
           { icon: "🎓", label: "고등학교 3학년" },
           { icon: "📖", label: "중학교 3학년" }
         ],
-        modelFn: (c) => `저는 ${c}이에요.`
+        modelFn: (c) => `저는 ${c.label}이에요.`
       },
       {
         npcText: "취미가 뭐예요?",
@@ -560,7 +718,7 @@ const SITUATIONS = {
           { icon: "🎨", label: "그림 그리기" },
           { icon: "🎮", label: "게임 하기" }
         ],
-        modelFn: (c) => `제 취미는 ${c}예요.`
+        modelFn: (c) => `제 취미는 ${c.label}예요.`
       }
     ]
   },
@@ -580,7 +738,7 @@ const SITUATIONS = {
           { icon: "🛒", label: "마트" },
           { icon: "🏠", label: "집" }
         ],
-        modelFn: (c) => `${c}에 가요.`
+        modelFn: (c) => `${c.label}에 가요.`
       },
       {
         npcText: "몇 번 버스를 타실 건가요?",
@@ -592,7 +750,7 @@ const SITUATIONS = {
           { icon: "🔢", label: "32번" },
           { icon: "🚇", label: "지하철" }
         ],
-        modelFn: (c) => c === "지하철" ? "지하철을 탈 거예요." : `${c} 버스를 탈 거예요.`
+        modelFn: (c) => c.label === "지하철" ? "지하철을 탈 거예요." : `${c.label} 버스를 탈 거예요.`
       },
       {
         npcText: "교통카드 있어요?",
@@ -605,9 +763,9 @@ const SITUATIONS = {
           { icon: "❓", label: "얼마예요?" }
         ],
         modelFn: (c) => {
-          if (c === "네, 있어요") return "네, 교통카드 있어요.";
-          if (c === "없어요") return "교통카드가 없어요.";
-          if (c === "현금 낼게요") return "현금으로 낼게요.";
+          if (c.label === "네, 있어요") return "네, 교통카드 있어요.";
+          if (c.label === "없어요") return "교통카드가 없어요.";
+          if (c.label === "현금 낼게요") return "현금으로 낼게요.";
           return "요금이 얼마예요?";
         }
       }
@@ -629,7 +787,7 @@ const SITUATIONS = {
           { icon: "😣", label: "배가 아파요" },
           { icon: "🤕", label: "머리가 아파요" }
         ],
-        modelFn: (c) => `${c}.`
+        modelFn: (c) => `${c.label}.`
       },
       {
         npcText: "언제부터 아팠어요?",
@@ -641,7 +799,7 @@ const SITUATIONS = {
           { icon: "📅", label: "2일 전부터요" },
           { icon: "📅", label: "일주일 전부터요" }
         ],
-        modelFn: (c) => `${c}.`
+        modelFn: (c) => `${c.label}.`
       },
       {
         npcText: "어디에 사세요?",
@@ -654,9 +812,9 @@ const SITUATIONS = {
           { icon: "🆔", label: "신분증 있어요" }
         ],
         modelFn: (c) => {
-          if (c === "수원에 살아요") return "저는 수원에 살아요.";
-          if (c === "주소가 뭐예요?") return "주소가 어디예요?";
-          if (c === "적어드릴게요") return "여기 적어드릴게요.";
+          if (c.label === "수원에 살아요") return "저는 수원에 살아요.";
+          if (c.label === "주소가 뭐예요?") return "주소가 어디예요?";
+          if (c.label === "적어드릴게요") return "여기 적어드릴게요.";
           return "신분증 있어요.";
         }
       }
@@ -678,7 +836,7 @@ const SITUATIONS = {
           { icon: "👨‍👩‍👧", label: "딸이에요" },
           { icon: "📞", label: "전화 잘못 거셨어요" }
         ],
-        modelFn: (c) => `${c}.`
+        modelFn: (c) => `${c.label}.`
       },
       {
         npcText: "무슨 일이에요?",
@@ -690,7 +848,7 @@ const SITUATIONS = {
           { icon: "❓", label: "확인하려고요" },
           { icon: "💌", label: "안부 전하려고요" }
         ],
-        modelFn: (c) => `${c}.`
+        modelFn: (c) => `${c.label}.`
       },
       {
         npcText: "나중에 다시 전화해도 될까요?",
@@ -703,11 +861,291 @@ const SITUATIONS = {
           { icon: "❌", label: "지금 얘기해요" }
         ],
         modelFn: (c) => {
-          if (c === "네, 괜찮아요") return "네, 괜찮아요. 전화 주세요.";
-          if (c === "저녁에 전화하세요") return "저녁에 다시 전화해 주세요.";
-          if (c === "문자 보내주세요") return "문자 메시지로 보내주세요.";
+          if (c.label === "네, 괜찮아요") return "네, 괜찮아요. 전화 주세요.";
+          if (c.label === "저녁에 전화하세요") return "저녁에 다시 전화해 주세요.";
+          if (c.label === "문자 보내주세요") return "문자 메시지로 보내주세요.";
           return "지금 얘기해요.";
         }
+      }
+    ]
+  },
+
+  family_morning: {
+    title: "🌅 아침 인사 / 일상 대화",
+    icon: "🏠",
+    npcAvatar: "👨‍👩‍👧",
+    steps: [
+      {
+        npcText: "잘 잤어? 오늘 기분이 어때?",
+        hint: "엄마 아빠한테 아침 인사를 해봐요",
+        choiceLabel: "👆 아침 인사를 골라봐요!",
+        choices: [
+          { icon: "😊", label: "네, 잘 잤어요" },
+          { icon: "😴", label: "조금 피곤해요" },
+          { icon: "🤒", label: "머리가 아파요" },
+          { icon: "😄", label: "기분이 좋아요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "오늘 학교에서 뭐 할 거야?",
+        hint: "오늘 할 일을 말해봐요",
+        choiceLabel: "👆 오늘 할 일을 골라봐요!",
+        choices: [
+          { icon: "📚", label: "공부할 거예요" },
+          { icon: "🎨", label: "미술 수업 있어요" },
+          { icon: "⚽", label: "체육 수업 있어요" },
+          { icon: "🎵", label: "음악 수업 있어요" }
+        ],
+        modelFn: (c) => `오늘 ${c.label}.`
+      },
+      {
+        npcText: "아침밥 먹었어? 뭐 먹고 싶어?",
+        hint: "먹고 싶은 음식을 말해봐요",
+        choiceLabel: "👆 먹고 싶은 것을 골라봐요!",
+        choices: [
+          { icon: "🍳", label: "계란 후라이요" },
+          { icon: "🥛", label: "우유랑 빵이요" },
+          { icon: "🍚", label: "밥이요" },
+          { icon: "🥣", label: "시리얼이요" }
+        ],
+        modelFn: (c) => `${c.label} 먹고 싶어요.`
+      },
+      {
+        npcText: "오늘도 열심히 해! 사랑해.",
+        hint: "엄마 아빠한테 대답해봐요",
+        choiceLabel: "👆 어떻게 대답할지 골라봐요!",
+        choices: [
+          { icon: "❤️", label: "저도 사랑해요" },
+          { icon: "😊", label: "네, 열심히 할게요" },
+          { icon: "👋", label: "다녀올게요" },
+          { icon: "🤗", label: "감사해요, 엄마 아빠" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      }
+    ]
+  },
+
+  family_meal: {
+    title: "🍚 식사 시간 대화",
+    icon: "🥢",
+    npcAvatar: "👨‍👩‍👧",
+    steps: [
+      {
+        npcText: "밥 먹자! 배고프지 않아?",
+        hint: "배고픈지 대답해봐요",
+        choiceLabel: "👆 대답을 골라봐요!",
+        choices: [
+          { icon: "😋", label: "네, 배고파요" },
+          { icon: "😊", label: "조금요" },
+          { icon: "🙂", label: "배 안 고파요" },
+          { icon: "⏰", label: "조금 있다가요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "반찬 뭐가 더 필요해? 맛있어?",
+        hint: "반찬에 대해 말해봐요",
+        choiceLabel: "👆 반찬에 대해 말해봐요!",
+        choices: [
+          { icon: "😍", label: "너무 맛있어요" },
+          { icon: "🥩", label: "고기 더 주세요" },
+          { icon: "🥦", label: "야채 더 주세요" },
+          { icon: "👍", label: "다 맛있어요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "밥 다 먹었어? 얼마나 먹었어?",
+        hint: "밥을 얼마나 먹었는지 말해봐요",
+        choiceLabel: "👆 얼마나 먹었는지 골라봐요!",
+        choices: [
+          { icon: "🍚", label: "다 먹었어요" },
+          { icon: "🥄", label: "반만 먹었어요" },
+          { icon: "😅", label: "조금 남겼어요" },
+          { icon: "😋", label: "더 먹고 싶어요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "잘 먹었어? 맛있었어?",
+        hint: "잘 먹었다고 인사해봐요",
+        choiceLabel: "👆 식사 후 인사를 골라봐요!",
+        choices: [
+          { icon: "🙏", label: "잘 먹었습니다" },
+          { icon: "😋", label: "정말 맛있었어요" },
+          { icon: "👍", label: "최고예요" },
+          { icon: "❤️", label: "감사해요, 맛있었어요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      }
+    ]
+  },
+
+  family_school: {
+    title: "🏫 학교 다녀왔을 때",
+    icon: "🎒",
+    npcAvatar: "👨‍👩‍👧",
+    steps: [
+      {
+        npcText: "어서 와! 학교 어땠어?",
+        hint: "학교에서 있었던 일을 말해봐요",
+        choiceLabel: "👆 학교 생활을 말해봐요!",
+        choices: [
+          { icon: "😊", label: "재미있었어요" },
+          { icon: "😐", label: "그냥 평범했어요" },
+          { icon: "😓", label: "힘들었어요" },
+          { icon: "🤩", label: "정말 좋았어요" }
+        ],
+        modelFn: (c) => `학교가 ${c.label}.`
+      },
+      {
+        npcText: "오늘 수업에서 뭐 배웠어?",
+        hint: "오늘 배운 것을 말해봐요",
+        choiceLabel: "👆 오늘 배운 것을 골라봐요!",
+        choices: [
+          { icon: "➕", label: "수학 배웠어요" },
+          { icon: "📖", label: "국어 배웠어요" },
+          { icon: "🌍", label: "사회 배웠어요" },
+          { icon: "🔬", label: "과학 배웠어요" }
+        ],
+        modelFn: (c) => `오늘 ${c.label}.`
+      },
+      {
+        npcText: "숙제 있어? 친구들이랑 잘 지냈어?",
+        hint: "숙제와 친구에 대해 말해봐요",
+        choiceLabel: "👆 대답을 골라봐요!",
+        choices: [
+          { icon: "📝", label: "숙제 있어요" },
+          { icon: "✅", label: "숙제 없어요" },
+          { icon: "😊", label: "친구들이랑 잘 놀았어요" },
+          { icon: "📚", label: "숙제 먼저 할게요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "오늘 힘들었지? 고생했어, 사랑해.",
+        hint: "엄마 아빠한테 대답해봐요",
+        choiceLabel: "👆 어떻게 대답할지 골라봐요!",
+        choices: [
+          { icon: "❤️", label: "저도 사랑해요" },
+          { icon: "🤗", label: "엄마 아빠도 고생했어요" },
+          { icon: "😊", label: "네, 감사해요" },
+          { icon: "💪", label: "내일도 열심히 할게요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      }
+    ]
+  },
+
+  family_feeling: {
+    title: "💬 상태 표현 대화",
+    icon: "💭",
+    npcAvatar: "👩",
+    steps: [
+      {
+        npcText: "오늘 기분이 어때?",
+        hint: "지금 기분을 말해봐요",
+        choiceLabel: "👆 지금 기분을 골라봐요!",
+        choices: [
+          { icon: "😊", label: "기분이 좋아요" },
+          { icon: "😐", label: "그냥 그래요" },
+          { icon: "😢", label: "기분이 안 좋아요" },
+          { icon: "😄", label: "너무 행복해요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "몸은 괜찮아? 어디 아프지 않아?",
+        hint: "몸 상태를 말해봐요",
+        choiceLabel: "👆 몸 상태를 골라봐요!",
+        choices: [
+          { icon: "😊", label: "괜찮아요" },
+          { icon: "🤒", label: "열이 나요" },
+          { icon: "😣", label: "배가 아파요" },
+          { icon: "😴", label: "피곤해요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "많이 힘들어? 엄마한테 말해봐.",
+        hint: "힘든 점을 말해봐요",
+        choiceLabel: "👆 힘든 점을 골라봐요!",
+        choices: [
+          { icon: "😓", label: "학교가 힘들어요" },
+          { icon: "😴", label: "잠이 와요" },
+          { icon: "🤕", label: "머리가 아파요" },
+          { icon: "💪", label: "괜찮아요, 할 수 있어요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "뭐가 필요해? 도와줄까?",
+        hint: "필요한 것을 말해봐요",
+        choiceLabel: "👆 필요한 것을 골라봐요!",
+        choices: [
+          { icon: "🤗", label: "안아줘요" },
+          { icon: "💊", label: "약 주세요" },
+          { icon: "🛌", label: "쉬고 싶어요" },
+          { icon: "🧃", label: "음료수 주세요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      }
+    ]
+  },
+
+  family_outing: {
+    title: "🚪 외출 / 귀가 인사",
+    icon: "👟",
+    npcAvatar: "👨‍👩‍👧",
+    steps: [
+      {
+        npcText: "어디 가려고 해?",
+        hint: "어디 가는지 말해봐요",
+        choiceLabel: "👆 어디 가는지 골라봐요!",
+        choices: [
+          { icon: "🏫", label: "학교 가요" },
+          { icon: "🛒", label: "마트 가요" },
+          { icon: "🏥", label: "병원 가요" },
+          { icon: "🤝", label: "친구 집에 가요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "언제 돌아올 거야?",
+        hint: "몇 시에 돌아올지 말해봐요",
+        choiceLabel: "👆 돌아올 시간을 골라봐요!",
+        choices: [
+          { icon: "🕓", label: "4시에 돌아올게요" },
+          { icon: "🕕", label: "6시에 돌아올게요" },
+          { icon: "🌙", label: "저녁에 돌아올게요" },
+          { icon: "❓", label: "잘 모르겠어요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "조심히 다녀와! 연락해.",
+        hint: "나가면서 인사해봐요",
+        choiceLabel: "👆 나가는 인사를 골라봐요!",
+        choices: [
+          { icon: "👋", label: "다녀올게요" },
+          { icon: "📱", label: "연락할게요" },
+          { icon: "😊", label: "네, 조심히 다녀올게요" },
+          { icon: "❤️", label: "사랑해요, 다녀올게요" }
+        ],
+        modelFn: (c) => `${c.label}.`
+      },
+      {
+        npcText: "왔어? 어떠웠어?",
+        hint: "집에 돌아와서 인사해봐요",
+        choiceLabel: "👆 귀가 인사를 골라봐요!",
+        choices: [
+          { icon: "🏠", label: "다녀왔어요" },
+          { icon: "😊", label: "재미있었어요" },
+          { icon: "😓", label: "힘들었어요" },
+          { icon: "😄", label: "다녀왔어요, 좋았어요" }
+        ],
+        modelFn: (c) => `${c.label}.`
       }
     ]
   }
@@ -884,19 +1322,30 @@ function selectChoice(ch, btn) {
   // 모범 답변 계산
   modelAnswer = step.modelFn(ch, gameState);
 
+  // 마이크/피드백 영역 초기화 (다른 카드 선택 시 리셋)
+  stopMic();
+  const vrb = document.getElementById('voice-result-box');
+  vrb.textContent = '여기에 말한 내용이 나타나요';
+  vrb.className = 'voice-result-box';
+  document.getElementById('mic-status').textContent = '마이크 버튼을 눌러봐요 👆';
+  document.getElementById('mic-status').className = 'mic-status';
+  document.getElementById('mic-btn').className = 'mic-btn';
+  document.getElementById('feedback').style.display = 'none';
+
   setTimeout(() => {
     gamePhase = 'model';
     document.getElementById('model-text').textContent = modelAnswer;
     document.getElementById('model-box').style.display = 'block';
+    document.getElementById('repeat-area').style.display = 'flex';
     // 영수증 단계면 영수증 업데이트
     if (step.showReceipt || step.isPaymentStep) showReceiptBox(step);
     speakText(modelAnswer);
 
+    // 모범답변 보여준 후 바로 choose 로 복귀 → 다른 카드 선택 가능
     setTimeout(() => {
-      gamePhase = 'repeat';
-      document.getElementById('repeat-area').style.display = 'flex';
+      gamePhase = 'choose';
     }, 1400);
-  }, 400);
+  }, 300);
 }
 
 // ─── VOICE RECOGNITION ─────────────────────────────────────────────────────
@@ -977,7 +1426,9 @@ function initRecognition() {
 }
 
 function toggleMic() {
-  if (gamePhase !== 'repeat') return;
+  // repeat-area가 표시된 상태이면 마이크 사용 가능
+  const repeatArea = document.getElementById('repeat-area');
+  if (repeatArea.style.display === 'none' || !modelAnswer) return;
   if (isListening) { stopMic(); return; }
   stopSpeech();
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -1088,19 +1539,23 @@ function evaluateVoice(alts) {
   if (matched || partialMatch) {
     vrb.className = 'voice-result-box correct';
     correctCount++;
-    showFeedback('🎉 완벽해요! 정말 잘했어요! 👏', 'ok');
+    showFeedback('🎉 잘했어요! 다른 카드도 눌러서 연습해봐요! 다음으로 가려면 ▶ 버튼을 눌러요.', 'ok');
     document.getElementById('next-row').style.display = 'flex';
     document.getElementById('mic-status').textContent = '훌륭해요! ✅';
     document.getElementById('mic-status').className = 'mic-status';
-    speakText('정말 잘했어요!');
+    speakText('잘했어요!');
+    // 다른 카드도 선택 가능하게 choose 복귀
+    gamePhase = 'choose';
     if (currentStep === totalSteps - 1) {
-      setTimeout(showComplete, 1500);
+      setTimeout(showComplete, 2000);
     }
   } else {
     vrb.className = 'voice-result-box wrong';
     showFeedback('❌ 다시 해봐요! 위의 문장을 보고 따라 말해봐요 💪', 'err');
     document.getElementById('mic-status').textContent = '다시 눌러서 말해봐요! 🎤';
     document.getElementById('mic-status').className = 'mic-status';
+    // 틀렸을 때도 다른 카드 선택 가능
+    gamePhase = 'choose';
   }
 }
 
@@ -1149,12 +1604,29 @@ function showFeedback(text, type) {
   fb.style.display = 'block';
 }
 
-function goBack() {
+function goPrevStep() {
   stopMic();
-  document.getElementById('game-screen').style.display = 'none';
-  document.getElementById('complete-screen').style.display = 'none';
-  document.getElementById('situation-screen').style.display = 'block';
   stopSpeech();
+  if (currentStep === 0) {
+    // 첫 단계면 홈으로
+    goHome();
+  } else {
+    // 이전 단계로
+    currentStep--;
+    // gameState에서 이전 단계 선택 초기화
+    const step = currentSituation.steps[currentStep];
+    if (step.onSelect) {
+      // 해당 단계의 저장값 제거
+      if (currentStep === 0) { gameState.foodOrder = null; gameState.storeItem = null; }
+      if (currentStep === 1 && currentSituation.title.includes('식당')) gameState.drinkOrder = null;
+      if (currentStep === 1 && currentSituation.title.includes('편의점')) gameState.storeCount = null;
+    }
+    loadStep();
+  }
+}
+
+function goBack() {
+  goHome();
 }
 
 // ─── TTS ───────────────────────────────────────────────────────────────────
@@ -1195,6 +1667,374 @@ function launchConfetti() {
     div.style.transform = `rotate(${Math.random()*360}deg)`;
     wrap.appendChild(div);
     setTimeout(() => div.remove(), 4000);
+  }
+}
+// ─── AI 자유 대화 ──────────────────────────────────────────────────────────
+let aiTopic = '';
+let aiConvoHistory = []; // {role, content} 대화 이력
+let aiModelAnswer = '';
+let aiRecognition = null;
+let aiIsListening = false;
+
+function startAIChat() {
+  stopSpeech(); stopMic();
+  document.getElementById('situation-screen').style.display = 'none';
+  document.getElementById('ai-chat-screen').style.display = 'block';
+  document.getElementById('ai-topic-screen').style.display = 'block';
+  document.getElementById('ai-convo-screen').style.display = 'none';
+}
+
+function goAIChatBack() {
+  stopAIMic(); stopFreeMic(); stopSpeech();
+  aiConvoHistory = [];
+  document.getElementById('ai-convo-screen').style.display = 'none';
+  document.getElementById('ai-topic-screen').style.display = 'block';
+  document.getElementById('ai-free-area').style.display = 'none';
+  document.getElementById('ai-free-btn').style.display = 'block';
+}
+
+function goHome() {
+  stopMic(); stopAIMic(); stopSpeech();
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('complete-screen').style.display = 'none';
+  document.getElementById('ai-chat-screen').style.display = 'none';
+  document.getElementById('situation-screen').style.display = 'block';
+}
+
+async function selectAITopic(topic, icon, desc) {
+  aiTopic = topic;
+  aiConvoHistory = [];
+  document.getElementById('ai-topic-screen').style.display = 'none';
+  document.getElementById('ai-convo-screen').style.display = 'block';
+  document.getElementById('ai-choices-area').style.display = 'none';
+  document.getElementById('ai-model-box').style.display = 'none';
+  document.getElementById('ai-repeat-area').style.display = 'none';
+  document.getElementById('ai-next-row').style.display = 'none';
+  document.getElementById('ai-feedback').style.display = 'none';
+  document.getElementById('ai-npc-text').textContent = '잠깐만요, 생각 중이에요...';
+  await fetchAITurn(null);
+}
+
+async function fetchAITurn(userReply) {
+  document.getElementById('ai-loading').style.display = 'block';
+  document.getElementById('ai-choices-area').style.display = 'none';
+  document.getElementById('ai-next-row').style.display = 'none';
+  document.getElementById('ai-feedback').style.display = 'none';
+
+  // 대화 이력에 사용자 답변 추가
+  if (userReply) {
+    aiConvoHistory.push({ role: 'user', content: userReply });
+  }
+
+  const systemPrompt = `너는 자폐성 장애가 있는 한국 고등학교 1학년 학생과 대화 연습을 도와주는 친근한 AI야.
+주제: ${aiTopic}
+
+규칙:
+1. 짧고 쉬운 한국어로 자연스럽게 말을 걸어줘 (1~2문장)
+2. 학생이 대답할 수 있는 자연스러운 답변 예시 3개를 만들어줘
+3. 답변 예시는 짧고 쉬운 문장으로, 실제로 그 학생이 말할 법한 내용이어야 해
+4. 반드시 아래 JSON 형식으로만 답해줘:
+
+{"ai": "AI가 하는 말", "choices": ["답변예시1", "답변예시2", "답변예시3"]}
+
+JSON 외에 다른 텍스트는 절대 출력하지 마.`;
+
+  try {
+    const messages = aiConvoHistory.length > 0
+      ? aiConvoHistory
+      : [{ role: 'user', content: `${aiTopic} 주제로 대화를 시작해줘.` }];
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: messages
+      })
+    });
+
+    const data = await res.json();
+    const raw = data.content?.map(b => b.text || '').join('') || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    document.getElementById('ai-loading').style.display = 'none';
+
+    // AI 말 표시 + TTS
+    document.getElementById('ai-npc-text').textContent = parsed.ai;
+    speakText(parsed.ai);
+
+    // 대화 이력에 AI 답변 추가
+    aiConvoHistory.push({ role: 'assistant', content: raw });
+
+    // 답변 예시 카드 생성
+    const grid = document.getElementById('ai-choice-grid');
+    grid.innerHTML = '';
+    parsed.choices.forEach(choice => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.style.justifyContent = 'flex-start';
+      btn.innerHTML = `<span class="choice-icon">💬</span><span class="choice-label">${choice}</span>`;
+      btn.onclick = () => selectAIChoice(choice, btn);
+      grid.appendChild(btn);
+    });
+
+    document.getElementById('ai-choices-area').style.display = 'block';
+
+    // 마이크/모델박스 리셋
+    document.getElementById('ai-model-box').style.display = 'none';
+    document.getElementById('ai-repeat-area').style.display = 'none';
+    const vb = document.getElementById('ai-voice-box');
+    vb.textContent = '여기에 말한 내용이 나타나요';
+    vb.className = 'voice-result-box';
+
+  } catch(e) {
+    document.getElementById('ai-loading').style.display = 'none';
+    document.getElementById('ai-npc-text').textContent = '앗, 연결에 문제가 생겼어요. 다시 시도해봐요!';
+    console.error('AI 오류:', e);
+  }
+}
+
+function selectAIChoice(choice, btn) {
+  // 선택 하이라이트
+  document.querySelectorAll('#ai-choice-grid .choice-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  aiModelAnswer = choice;
+
+  // 모범답변 표시 + TTS
+  document.getElementById('ai-model-text').textContent = choice;
+  document.getElementById('ai-model-box').style.display = 'block';
+  speakText(choice);
+
+  // 마이크 영역 표시 & 리셋
+  stopAIMic();
+  const vb = document.getElementById('ai-voice-box');
+  vb.textContent = '여기에 말한 내용이 나타나요';
+  vb.className = 'voice-result-box';
+  document.getElementById('ai-mic-status').textContent = '마이크 버튼을 눌러봐요 👆';
+  document.getElementById('ai-mic-btn').className = 'mic-btn';
+  document.getElementById('ai-feedback').style.display = 'none';
+
+  setTimeout(() => {
+    document.getElementById('ai-repeat-area').style.display = 'flex';
+  }, 1200);
+}
+
+async function continueAIChat() {
+  const chosen = aiModelAnswer;
+  document.getElementById('ai-next-row').style.display = 'none';
+  document.getElementById('ai-model-box').style.display = 'none';
+  document.getElementById('ai-repeat-area').style.display = 'none';
+  document.getElementById('ai-feedback').style.display = 'none';
+  document.getElementById('ai-npc-text').textContent = '잠깐만요, 생각 중이에요...';
+  await fetchAITurn(chosen);
+}
+
+function skipAIStep() {
+  stopAIMic();
+  document.getElementById('ai-next-row').style.display = 'flex';
+  showAIFeedback('💡 다음엔 꼭 말해봐요!', 'err');
+}
+
+function showAIFeedback(text, type) {
+  const fb = document.getElementById('ai-feedback');
+  fb.textContent = text;
+  fb.className = 'feedback ' + type;
+  fb.style.display = 'block';
+}
+
+// AI 마이크
+function toggleAIMic() {
+  if (document.getElementById('ai-repeat-area').style.display === 'none' || !aiModelAnswer) return;
+  if (aiIsListening) { stopAIMic(); return; }
+  stopSpeech();
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { alert('Chrome 브라우저를 사용해주세요!'); return; }
+
+  aiRecognition = new SpeechRecognition();
+  aiRecognition.lang = 'ko-KR';
+  aiRecognition.interimResults = true;
+  aiRecognition.maxAlternatives = 5;
+  aiRecognition.continuous = false;
+
+  aiRecognition.onstart = () => {
+    aiIsListening = true;
+    document.getElementById('ai-mic-btn').className = 'mic-btn listening';
+    document.getElementById('ai-voice-box').textContent = '🎤 듣고 있어요...';
+    document.getElementById('ai-voice-box').className = 'voice-result-box listening';
+    document.getElementById('ai-mic-status').textContent = '말해봐요! 🎙️';
+    document.getElementById('ai-mic-status').className = 'mic-status active';
+  };
+
+  aiRecognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t; else interim += t;
+    }
+    document.getElementById('ai-voice-box').textContent = final || interim || '🎤 듣고 있어요...';
+    if (final) {
+      const alts = [];
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) for (let j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript);
+      }
+      evaluateAIVoice(alts.length ? alts : [final]);
+    }
+  };
+
+  aiRecognition.onerror = (e) => {
+    aiIsListening = false;
+    document.getElementById('ai-mic-btn').className = 'mic-btn';
+    document.getElementById('ai-mic-status').textContent = e.error === 'not-allowed' ? '마이크 권한을 허용해주세요!' : '다시 시도해봐요!';
+    document.getElementById('ai-mic-status').className = 'mic-status';
+  };
+
+  aiRecognition.onend = () => {
+    aiIsListening = false;
+    document.getElementById('ai-mic-btn').className = 'mic-btn';
+  };
+
+  aiRecognition.start();
+}
+
+function stopAIMic() {
+  if (aiRecognition) { try { aiRecognition.stop(); } catch(e) {} }
+  aiIsListening = false;
+  document.getElementById('ai-mic-btn').className = 'mic-btn';
+}
+
+// ─── 자유 발화 (내 생각 말하기) ────────────────────────────────────────────
+let freeRecognition = null;
+let freeIsListening = false;
+
+function startFreeSpeak() {
+  stopAIMic(); stopSpeech();
+  document.getElementById('ai-free-btn').style.display = 'none';
+  document.getElementById('ai-free-area').style.display = 'block';
+  document.getElementById('ai-free-voice-box').textContent = '마이크를 눌러서 자유롭게 말해봐요!';
+  document.getElementById('ai-free-voice-box').className = 'voice-result-box';
+  document.getElementById('ai-free-mic-status').textContent = '마이크 버튼을 눌러봐요 👆';
+}
+
+function cancelFreeSpeak() {
+  stopFreeMic();
+  document.getElementById('ai-free-area').style.display = 'none';
+  document.getElementById('ai-free-btn').style.display = 'block';
+}
+
+function toggleFreeMic() {
+  if (freeIsListening) { stopFreeMic(); return; }
+  stopSpeech();
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { alert('Chrome 브라우저를 사용해주세요!'); return; }
+
+  freeRecognition = new SpeechRecognition();
+  freeRecognition.lang = 'ko-KR';
+  freeRecognition.interimResults = true;
+  freeRecognition.maxAlternatives = 1;
+  freeRecognition.continuous = false;
+
+  freeRecognition.onstart = () => {
+    freeIsListening = true;
+    document.getElementById('ai-free-mic-btn').className = 'mic-btn listening';
+    document.getElementById('ai-free-voice-box').textContent = '🎤 듣고 있어요...';
+    document.getElementById('ai-free-voice-box').className = 'voice-result-box listening';
+    document.getElementById('ai-free-mic-status').textContent = '자유롭게 말해봐요! 🎙️';
+    document.getElementById('ai-free-mic-status').className = 'mic-status active';
+  };
+
+  freeRecognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t; else interim += t;
+    }
+    const display = final || interim;
+    document.getElementById('ai-free-voice-box').textContent = display || '🎤 듣고 있어요...';
+    if (final) {
+      stopFreeMic();
+      processFreeReply(final.trim());
+    }
+  };
+
+  freeRecognition.onerror = (e) => {
+    freeIsListening = false;
+    document.getElementById('ai-free-mic-btn').className = 'mic-btn';
+    const msg = e.error === 'not-allowed' ? '마이크 권한을 허용해주세요!' : '다시 시도해봐요!';
+    document.getElementById('ai-free-mic-status').textContent = msg;
+    document.getElementById('ai-free-mic-status').className = 'mic-status';
+  };
+
+  freeRecognition.onend = () => {
+    freeIsListening = false;
+    document.getElementById('ai-free-mic-btn').className = 'mic-btn';
+  };
+
+  freeRecognition.start();
+}
+
+function stopFreeMic() {
+  if (freeRecognition) { try { freeRecognition.stop(); } catch(e) {} }
+  freeIsListening = false;
+  document.getElementById('ai-free-mic-btn').className = 'mic-btn';
+}
+
+async function processFreeReply(spokenText) {
+  // 인식된 내 말을 화면에 표시
+  const vb = document.getElementById('ai-free-voice-box');
+  vb.textContent = `"${spokenText}"`;
+  vb.className = 'voice-result-box correct';
+  document.getElementById('ai-free-mic-status').textContent = '잘 말했어요! 👏 AI가 대답 중...';
+  document.getElementById('ai-free-mic-status').className = 'mic-status';
+
+  // 자유 발화 영역 숨기고 AI 대화 이어가기
+  setTimeout(async () => {
+    document.getElementById('ai-free-area').style.display = 'none';
+    document.getElementById('ai-free-btn').style.display = 'block';
+    document.getElementById('ai-choices-area').style.display = 'none';
+    document.getElementById('ai-model-box').style.display = 'none';
+    document.getElementById('ai-repeat-area').style.display = 'none';
+    document.getElementById('ai-feedback').style.display = 'none';
+    document.getElementById('ai-npc-text').textContent = '잠깐만요, 생각 중이에요...';
+    await fetchAITurn(spokenText);
+  }, 800);
+}
+
+function evaluateAIVoice(alts) {
+  const normalize = s => {
+    let r = s.toLowerCase();
+    r = r.replace(/(\d+)\s*만/g, (_, n) => numToKorean(parseInt(n)) + '만');
+    r = r.replace(/[.,!?~·\s]/g, '');
+    r = r.replace(/[\d,]+/g, m => numToKorean(parseInt(m.replace(/,/g,''))));
+    return r;
+  };
+  const target = normalize(aiModelAnswer);
+  const matched = alts.some(a => normalize(a) === target);
+  const partialMatch = alts.some(a => {
+    const na = normalize(a);
+    let hits = 0;
+    for (let ch of na) { if (target.includes(ch)) hits++; }
+    return (hits / (target.length || 1)) >= 0.90 && na.length >= target.length * 0.8;
+  });
+
+  const vb = document.getElementById('ai-voice-box');
+  vb.textContent = alts[0];
+
+  if (matched || partialMatch) {
+    vb.className = 'voice-result-box correct';
+    showAIFeedback('🎉 잘했어요! 계속 대화해봐요! 👏', 'ok');
+    document.getElementById('ai-next-row').style.display = 'flex';
+    document.getElementById('ai-mic-status').textContent = '훌륭해요! ✅';
+    document.getElementById('ai-mic-status').className = 'mic-status';
+    speakText('잘했어요!');
+  } else {
+    vb.className = 'voice-result-box wrong';
+    showAIFeedback('❌ 다시 해봐요! 위 문장을 보고 따라 말해봐요 💪', 'err');
+    document.getElementById('ai-mic-status').textContent = '다시 눌러서 말해봐요! 🎤';
+    document.getElementById('ai-mic-status').className = 'mic-status';
   }
 }
 </script>
